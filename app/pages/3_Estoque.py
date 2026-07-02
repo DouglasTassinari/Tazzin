@@ -14,8 +14,11 @@ if _PROJECT_ROOT not in sys.path:
 import pandas as pd
 import streamlit as st
 
+from app.core.bootstrap import ensure_demo_data_once
 from app.database.base import session_scope
 from app.services.inventory_service import InventoryService
+
+ensure_demo_data_once()
 
 st.title("Estoque")
 st.caption("Níveis de estoque disponível e alertas de reposição.")

@@ -16,8 +16,11 @@ from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 
+from app.core.bootstrap import ensure_demo_data_once
 from app.database.base import session_scope
 from app.services.production_service import ProductionService
+
+ensure_demo_data_once()
 
 st.title("Produção")
 st.caption("Vazão de ordens de produção, rendimento de linha e tendências de refugo.")

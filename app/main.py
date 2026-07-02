@@ -16,20 +16,13 @@ from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 
-from app.core.bootstrap import ensure_demo_data
+from app.core.bootstrap import ensure_demo_data_once
 from app.database.base import session_scope
 from app.services.analytics_service import AnalyticsService
 
 st.set_page_config(page_title="OpsVision", page_icon="📊", layout="wide")
 
-
-@st.cache_resource(show_spinner="Preparando o banco de dados de demonstração...")
-def _bootstrap() -> bool:
-    ensure_demo_data()
-    return True
-
-
-_bootstrap()
+ensure_demo_data_once()
 
 st.title("OpsVision")
 st.caption("Plataforma de Inteligência Operacional Empresarial — visão executiva.")

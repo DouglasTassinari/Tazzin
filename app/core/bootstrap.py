@@ -41,3 +41,21 @@ def ensure_demo_data() -> None:
 
     run()
     logger.info("synthetic demo dataset generated")
+
+
+def ensure_demo_data_once() -> None:
+    """Streamlit-cached wrapper, safe to call at the top of every page.
+
+    Pages are standalone scripts in Streamlit, so each one must trigger the
+    bootstrap itself — a visitor may deep-link to a page before the home
+    page has ever run. ``st.cache_resource`` makes this a no-op after the
+    first call in the process.
+    """
+    import streamlit as st
+
+    @st.cache_resource(show_spinner="Preparando o banco de dados de demonstração...")
+    def _cached() -> bool:
+        ensure_demo_data()
+        return True
+
+    _cached()

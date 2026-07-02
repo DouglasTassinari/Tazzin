@@ -16,8 +16,11 @@ from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 
+from app.core.bootstrap import ensure_demo_data_once
 from app.database.base import session_scope
 from app.services.projects_service import ProjectsService
+
+ensure_demo_data_once()
 
 st.title("Projetos")
 st.caption("Status de entrega, conclusão de tarefas e próximos marcos.")
