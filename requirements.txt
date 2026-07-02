@@ -1,0 +1,8 @@
+streamlit>=1.58,<2.0
+SQLAlchemy>=2.0,<3.0
+pandas>=3.0,<4.0
+Faker>=40.0,<41.0
+
+# dev / tooling
+pytest>=9.0,<10.0
+ruff>=0.15,<1.0
