@@ -60,7 +60,10 @@ docs/              architecture, module reference, how-to-run, contributing
 
 See [`docs/MODULES.md`](docs/MODULES.md) for what each business module
 covers and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the layering
-rules and the reasoning behind them.
+rules and the reasoning behind them. For a complete technical reference —
+architecture diagrams, domain model, data flow, improvement points and
+roadmap — see [`docs/DOCUMENTACAO_TECNICA.md`](docs/DOCUMENTACAO_TECNICA.md)
+(pt-BR).
 
 ## Running tests
 
