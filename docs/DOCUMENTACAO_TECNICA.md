@@ -64,7 +64,7 @@ próprios arquivos). É essencialmente um *modular monolith*.
 ```mermaid
 flowchart TD
     subgraph UI["🖥️ Interface — Streamlit"]
-        MAIN["main.py<br/>(Dashboard executivo)"]
+        MAIN["Início.py<br/>(Dashboard executivo)"]
         PAGES["pages/1_Vendas.py ... 10_Administração.py<br/>(1 página por módulo)"]
     end
 
@@ -107,7 +107,7 @@ flowchart TD
 
 | Camada | Diretório | Responsabilidade | O que é proibido |
 |---|---|---|---|
-| **Interface** | `app/main.py`, `app/pages/` | Renderizar KPIs e gráficos; coletar filtros do usuário | Importar repositório ou model diretamente — só fala com o *service* do seu módulo |
+| **Interface** | `app/Início.py`, `app/pages/` | Renderizar KPIs e gráficos; coletar filtros do usuário | Importar repositório ou model diretamente — só fala com o *service* do seu módulo |
 | **Services** | `app/services/` | Orquestrar: chamar repositórios, aplicar regras de domínio, logar, medir latência (`@track`) | Falar com repositório/model de **outro** módulo (exceção: `AnalyticsService`) |
 | **Domain** | `app/domain/` | Validações e máquinas de estado como **funções puras** | Qualquer I/O: sem sessão de banco, sem Streamlit, sem filesystem |
 | **Repositories** | `app/repositories/` | Consultas SQLAlchemy: CRUD herdado do `BaseRepository` + agregações específicas (KPIs, séries mensais) | Conter regra de negócio; ser importado pela interface |
@@ -147,7 +147,7 @@ OpsVision/
 │   ├── repositories/         # acesso a dados (base genérica + 1 arquivo por módulo)
 │   ├── services/             # orquestração (1 arquivo por módulo + analytics)
 │   ├── pages/                # páginas Streamlit (1 por módulo)
-│   └── main.py               # entrypoint — Dashboard executivo
+│   └── Início.py             # entrypoint — Dashboard executivo
 ├── scripts/                  # utilitários CLI (fora do runtime da aplicação)
 ├── tests/                    # espelha app/: test_domain, test_repositories, test_services
 ├── docs/                     # documentação de arquitetura e operação

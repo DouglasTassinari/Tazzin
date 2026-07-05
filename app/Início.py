@@ -1,4 +1,4 @@
-"""OpsVision entrypoint: executive Dashboard (run via ``streamlit run app/main.py``)."""
+"""OpsVision entrypoint: executive Dashboard (run via ``streamlit run app/Início.py``)."""
 # ruff: noqa: E402  -- sys.path bootstrap below must run before the app.* imports
 from __future__ import annotations
 
@@ -22,12 +22,11 @@ from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.analytics_service import AnalyticsService
 
-apply_branding("Dashboard")
+apply_branding("Início")
 
 ensure_demo_data_once()
 
 st.image(LOGO_FULL, width=300)
-st.caption("Plataforma de Inteligência Operacional Empresarial — visão executiva.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)
