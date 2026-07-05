@@ -26,7 +26,7 @@ apply_branding("Início")
 
 ensure_demo_data_once()
 
-st.image(LOGO_FULL, width=300)
+st.image(LOGO_FULL, width=180)
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)

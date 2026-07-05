@@ -35,3 +35,4 @@ def apply_branding(page_title: str) -> None:
         layout="wide",
     )
     st.logo(LOGO_WORDMARK, icon_image=LOGO_ICON, size="large")
+    st.sidebar.image(LOGO_FULL, width="stretch")
