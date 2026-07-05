@@ -70,12 +70,19 @@ def ensure_demo_data_once() -> None:
     bootstrap itself — a visitor may deep-link to a page before the home
     page has ever run. ``st.cache_resource`` makes this a no-op after the
     first call in the process.
+
+    DATASET_VERSION is part of the cache key on purpose: Streamlit Cloud
+    syncs code pushes into a *running* process (no restart), so a cache
+    keyed only on this function's code would survive a data-only change
+    and the version check in ensure_demo_data would never re-run.
     """
     import streamlit as st
 
+    from scripts.generate_synthetic_data import DATASET_VERSION
+
     @st.cache_resource(show_spinner="Preparando o banco de dados de demonstração...")
-    def _cached() -> bool:
+    def _cached(dataset_version: int) -> bool:
         ensure_demo_data()
         return True
 
-    _cached()
+    _cached(DATASET_VERSION)
