@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.sales_service import SalesService
 
@@ -42,7 +43,7 @@ with session_scope() as session:
     active_customers = len(service.active_customers())
 
 kpi1, kpi2, kpi3 = st.columns(3)
-kpi1.metric("Receita líquida no período", f"${total_revenue:,.0f}")
+kpi1.metric("Receita líquida no período", format_brl(total_revenue))
 kpi2.metric("Clientes ativos", active_customers)
 kpi3.metric("Meses com pedidos", len(revenue_df))
 

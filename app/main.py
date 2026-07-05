@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.analytics_service import AnalyticsService
 
@@ -39,9 +40,9 @@ with session_scope() as session:
     cashflow_rows = service.cashflow_trend(start, end)
 
 row1 = st.columns(4)
-row1[0].metric("Receita", f"${summary['total_revenue']:,.0f}")
-row1[1].metric("Gastos", f"${summary['total_spend']:,.0f}")
-row1[2].metric("Fluxo de caixa líquido", f"${summary['net_cashflow']:,.0f}")
+row1[0].metric("Receita", format_brl(summary["total_revenue"]))
+row1[1].metric("Gastos", format_brl(summary["total_spend"]))
+row1[2].metric("Fluxo de caixa líquido", format_brl(summary["net_cashflow"]))
 row1[3].metric("Projetos ativos", summary["active_projects"])
 
 row2 = st.columns(4)
@@ -51,8 +52,8 @@ row2[2].metric("Solicitações de manutenção abertas", summary["open_maintenan
 row2[3].metric("Quadro de funcionários ativo", summary["active_headcount"])
 
 row3 = st.columns(2)
-row3[0].metric("Contas a receber pendentes", f"${summary['outstanding_receivables']:,.0f}")
-row3[1].metric("Contas a pagar pendentes", f"${summary['outstanding_payables']:,.0f}")
+row3[0].metric("Contas a receber pendentes", format_brl(summary["outstanding_receivables"]))
+row3[1].metric("Contas a pagar pendentes", format_brl(summary["outstanding_payables"]))
 
 st.divider()
 

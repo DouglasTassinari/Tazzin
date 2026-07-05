@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.database.models.maintenance import AssetCriticality, MaintenanceStatus
 from app.services.maintenance_service import MaintenanceService
@@ -52,7 +53,7 @@ with session_scope() as session:
 
 kpi1, kpi2, kpi3 = st.columns(3)
 kpi1.metric("Solicitações abertas", open_requests)
-kpi2.metric("Custo de manutenção no período", f"${total_cost:,.0f}")
+kpi2.metric("Custo de manutenção no período", format_brl(total_cost))
 kpi3.metric("Ativos críticos", critical_assets)
 
 st.subheader("Custo de manutenção por mês")

@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.finance_service import FinanceService
 
@@ -39,9 +40,9 @@ with session_scope() as session:
     net_cashflow_total = cashflow_df["Fluxo de Caixa Líquido"].sum() if not cashflow_df.empty else 0
 
 kpi1, kpi2, kpi3 = st.columns(3)
-kpi1.metric("Contas a receber pendentes", f"${summary['receivables']:,.0f}")
-kpi2.metric("Contas a pagar pendentes", f"${summary['payables']:,.0f}")
-kpi3.metric("Fluxo de caixa líquido no período", f"${net_cashflow_total:,.0f}")
+kpi1.metric("Contas a receber pendentes", format_brl(summary["receivables"]))
+kpi2.metric("Contas a pagar pendentes", format_brl(summary["payables"]))
+kpi3.metric("Fluxo de caixa líquido no período", format_brl(net_cashflow_total))
 
 st.subheader("Fluxo de caixa líquido por mês")
 if cashflow_df.empty:

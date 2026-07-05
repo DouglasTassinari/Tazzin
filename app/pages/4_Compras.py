@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.purchasing_service import PurchasingService
 
@@ -46,7 +47,7 @@ with session_scope() as session:
     )
 
 kpi1, kpi2, kpi3 = st.columns(3)
-kpi1.metric("Gasto total no período", f"${total_spend:,.0f}")
+kpi1.metric("Gasto total no período", format_brl(total_spend))
 kpi2.metric("Fornecedores ativos", active_suppliers)
 kpi3.metric("Avaliação média de fornecedores", f"{avg_rating:.1f}")
 
