@@ -1,0 +1,31 @@
+# Visita o app no Streamlit Community Cloud a cada 6 horas com um navegador
+# headless para ele nunca hibernar (e despertá-lo caso já tenha hibernado).
+# Atenção: o GitHub desativa workflows agendados após 60 dias sem atividade
+# no repositório — basta um commit ou execução manual para reativar.
+name: Manter painel acordado
+
+on:
+  schedule:
+    - cron: "23 */6 * * *" # a cada 6 horas
+  workflow_dispatch: # permite disparo manual na aba Actions
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_URL: https://opsvision.streamlit.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Playwright
+        run: |
+          pip install playwright
+          playwright install chromium --with-deps
+
+      - name: Visitar o painel
+        run: python scripts/keep_alive.py
