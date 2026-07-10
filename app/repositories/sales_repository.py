@@ -1,7 +1,7 @@
 """Data access for the Sales module."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import func, select
 
@@ -67,6 +67,95 @@ class SalesOrderRepository(BaseRepository[SalesOrder]):
             .order_by(total.desc())
         )
         return [(segment.value, round(float(amount), 2)) for segment, amount in self.session.execute(stmt).all()]
+
+    def customer_portfolio(self, today: date, months: int = 36) -> list[dict]:
+        """Carteira de clientes ativos para o módulo Relacionamento.
+
+        Para cada cliente ativo devolve a última interação (data do pedido mais
+        recente, ignorando cancelados) e o faturamento dos últimos ``months``
+        meses — base da classe econômica. Duas consultas agregadas mescladas em
+        memória por id do cliente (SQLite não tem ``FILTER`` amplo).
+        """
+        cutoff = today - timedelta(days=round(months * 30.4))
+        last_stmt = (
+            select(
+                Customer.id,
+                Customer.name,
+                Customer.segment,
+                Customer.city,
+                Customer.state,
+                func.max(SalesOrder.order_date).label("last"),
+            )
+            .join(SalesOrder, SalesOrder.customer_id == Customer.id)
+            .where(Customer.active.is_(True), SalesOrder.status != OrderStatus.CANCELLED)
+            .group_by(Customer.id)
+        )
+        rev_stmt = (
+            select(
+                SalesOrder.customer_id,
+                func.sum(SalesOrderItem.quantity * SalesOrderItem.unit_price),
+            )
+            .join(SalesOrderItem, SalesOrderItem.order_id == SalesOrder.id)
+            .where(
+                SalesOrder.status != OrderStatus.CANCELLED,
+                SalesOrder.order_date >= cutoff,
+            )
+            .group_by(SalesOrder.customer_id)
+        )
+        revenue = {
+            cid: float(total or 0) for cid, total in self.session.execute(rev_stmt).all()
+        }
+        return [
+            {
+                "id": cid,
+                "cliente": name,
+                "segmento": segment.value,
+                "cidade": city,
+                "estado": state,
+                "ultima_interacao": last,
+                "faturamento_36m": revenue.get(cid, 0.0),
+            }
+            for cid, name, segment, city, state, last in self.session.execute(last_stmt).all()
+        ]
+
+    def open_proposals(self) -> list[dict]:
+        """Propostas em aberto para o Radar: pedidos DRAFT/CONFIRMED ainda não
+        expedidos nem faturados. Valor líquido (bruto − desconto) por proposta.
+        """
+        gross = func.sum(SalesOrderItem.quantity * SalesOrderItem.unit_price)
+        stmt = (
+            select(
+                SalesOrder.id,
+                SalesOrder.order_number,
+                Customer.name,
+                Customer.segment,
+                SalesOrder.order_date,
+                SalesOrder.status,
+                SalesOrder.discount_pct,
+                gross.label("gross"),
+            )
+            .join(Customer, Customer.id == SalesOrder.customer_id)
+            .join(SalesOrderItem, SalesOrderItem.order_id == SalesOrder.id)
+            .where(SalesOrder.status.in_([OrderStatus.DRAFT, OrderStatus.CONFIRMED]))
+            .group_by(SalesOrder.id)
+        )
+        propostas = []
+        for oid, numero, cliente, segmento, criacao, status, desconto, bruto in (
+            self.session.execute(stmt).all()
+        ):
+            valor = round(float(bruto or 0) * (1 - float(desconto or 0) / 100), 2)
+            propostas.append(
+                {
+                    "id": oid,
+                    "numero": numero,
+                    "cliente": cliente,
+                    "segmento": segmento.value,
+                    "data_criacao": criacao,
+                    "status": status.value,
+                    "valor": valor,
+                }
+            )
+        return propostas
 
     def top_customers(self, start: date, end: date, limit: int = 10) -> list[tuple[str, float]]:
         stmt = (

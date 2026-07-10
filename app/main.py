@@ -22,6 +22,18 @@ import streamlit as st
 pages = [
     st.Page("Início.py", title="Início", icon=":material/home:", default=True),
     st.Page("pages/1_Vendas.py", title="Vendas", icon=":material/sell:", url_path="vendas"),
+    st.Page(
+        "pages/11_Relacionamento.py",
+        title="Relacionamento",
+        icon=":material/diversity_3:",
+        url_path="relacionamento",
+    ),
+    st.Page(
+        "pages/12_Radar.py",
+        title="Radar de Oportunidades",
+        icon=":material/radar:",
+        url_path="radar",
+    ),
     st.Page("pages/2_Produção.py", title="Produção", icon=":material/factory:", url_path="producao"),
     st.Page("pages/3_Estoque.py", title="Estoque", icon=":material/inventory_2:", url_path="estoque"),
     st.Page("pages/4_Compras.py", title="Compras", icon=":material/shopping_cart:", url_path="compras"),

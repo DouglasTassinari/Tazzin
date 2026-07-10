@@ -83,7 +83,7 @@ from app.database.models.sales import Customer, CustomerSegment, OrderStatus, Sa
 # Bump whenever the generated dataset changes shape (volumes, salaries,
 # accounting rules...): deployments with a database seeded by an older
 # version reseed automatically on boot (see app/core/bootstrap.py).
-DATASET_VERSION = 3
+DATASET_VERSION = 4
 
 DATASET_START = date(2023, 1, 1)
 DATASET_END = date.today()
@@ -359,10 +359,18 @@ def generate_sales(session, customers, products, locations, count: int = 2200):
     active_customers = [c for c in customers if c.active]
     orders, items = [], []
     for i in range(1, count + 1):
-        order_date = random_date()
+        status = weighted_choice(status_weights)
+        # Propostas em aberto (rascunho/confirmada) são naturalmente recentes —
+        # uma proposta muito antiga já teria sido faturada ou cancelada. Datá-las
+        # nos últimos ~40 dias dá ao Radar de Oportunidades uma distribuição de
+        # temperatura realista (Quente/Morna/Fria/Vencida) em vez de tudo vencido.
+        if status in (OrderStatus.DRAFT, OrderStatus.CONFIRMED):
+            order_date = random_date(DATASET_END - timedelta(days=40), DATASET_END)
+        else:
+            order_date = random_date()
         order = SalesOrder(
             order_number=f"SO-{i:06d}", customer_id=random.choice(active_customers).id,
-            location_id=random.choice(locations).id, status=weighted_choice(status_weights),
+            location_id=random.choice(locations).id, status=status,
             order_date=order_date, discount_pct=round(random.uniform(0, 20), 2),
         )
         session.add(order)
