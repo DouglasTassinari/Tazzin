@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.core.logging import get_logger
 from app.core.metrics import track
 from app.services.finance_service import FinanceService
+from app.services.machining_service import MachiningService
 from app.services.maintenance_service import MaintenanceService
 from app.services.people_service import PeopleService
 from app.services.production_service import ProductionService
@@ -21,6 +22,7 @@ from app.services.projects_service import ProjectsService
 from app.services.purchasing_service import PurchasingService
 from app.services.quality_service import QualityService
 from app.services.sales_service import SalesService
+from app.services.scrap_service import ScrapService
 
 logger = get_logger("services.analytics")
 
@@ -36,6 +38,8 @@ class AnalyticsService:
         self.projects = ProjectsService(session)
         self.maintenance = MaintenanceService(session)
         self.quality = QualityService(session)
+        self.machining = MachiningService(session)
+        self.scrap = ScrapService(session)
 
     @track("analytics.executive_summary")
     def executive_summary(self, start: date, end: date) -> dict:
@@ -63,6 +67,11 @@ class AnalyticsService:
             "active_headcount": len(self.people.employees.active_employees()),
             "outstanding_receivables": outstanding["receivables"],
             "outstanding_payables": outstanding["payables"],
+            "machining_avg_yield": round(
+                sum(y for _, y, _ in self.machining.operator_yield_ranking(start, end))
+                / max(len(self.machining.operator_yield_ranking(start, end)), 1), 2
+            ),
+            "total_scrap_pieces": self.scrap.total_in_period(start, end),
         }
 
     def revenue_trend(self, start: date, end: date) -> list[tuple[str, float]]:

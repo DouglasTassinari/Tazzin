@@ -45,7 +45,10 @@ story instead of showing disconnected random numbers.
 | projects / projects_tasks / projects_milestones | 42 / 520 / 130 |
 | maintenance_assets / requests / logs | 210 / 850 / 1,350 |
 | quality_inspections / nonconformances / metrics | 2,400 / ~410 / 690 |
-| **Total across 31 tables** | **~44,000** |
+| machining_appointments (machines / operators) | 4,500 (12 / 14) |
+| machining_scrap_records / scrap_parts | 380 / 50 |
+| machining_time_adjustments | 220 |
+| **Total across 38 tables** | **~46,000** |
 
 ## Realism choices worth knowing about
 

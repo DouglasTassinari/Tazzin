@@ -1,4 +1,4 @@
-"""Populate OpsVision with a coherent, multi-year synthetic dataset.
+"""Populate the Sistema TAZZIN with a coherent, multi-year synthetic dataset.
 
 Every entity is fictional (generated with Faker). Relationships are built
 in dependency order (locations -> departments -> employees -> ... ->
@@ -17,7 +17,7 @@ import argparse
 import random
 import sys
 import unicodedata
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -79,11 +79,20 @@ from app.database.models.quality import (
     QualityMetric,
 )
 from app.database.models.sales import Customer, CustomerSegment, OrderStatus, SalesOrder, SalesOrderItem
+from app.database.models.machining import (
+    Appointment,
+    Machine,
+    OccurrenceCategory,
+    OccurrenceType,
+    Operator,
+)
+from app.database.models.scrap import ScrapPart, ScrapRecord
+from app.database.models.adjustments import TimeAdjustment
 
 # Bump whenever the generated dataset changes shape (volumes, salaries,
 # accounting rules...): deployments with a database seeded by an older
 # version reseed automatically on boot (see app/core/bootstrap.py).
-DATASET_VERSION = 4
+DATASET_VERSION = 5
 
 DATASET_START = date(2023, 1, 1)
 DATASET_END = date.today()
@@ -160,6 +169,58 @@ AUDIT_DETAILS = [
     "Registro revisado pelo responsável do módulo.", "Alteração aprovada pelo gestor da área.",
     "Operação executada em lote pela rotina mensal.", "Ajuste manual após conferência física.",
     "Documento exportado para auditoria externa.", "Atualização de status após integração.",
+]
+
+# ── Machining (Usinagem) vocabulary ──
+MACHINE_NAMES = [
+    "Torno CNC Romi", "Torno CNC Mazak", "Centro de Usinagem Haas", "Centro de Usinagem DMG",
+    "Fresadora CNC", "Furadeira Radial", "Retífica Cilíndrica", "Retífica Plana",
+    "Mandrilhadora", "Torno Convencional", "Centro de Torneamento", "Eletroerosão",
+]
+OCCURRENCE_TYPES_SEED = [
+    ("PRODUCAO", "Produção", OccurrenceCategory.PRODUCTIVE, True, True, 1.0),
+    ("SETUP_30MIN", "Setup 30min", OccurrenceCategory.SEMI_PRODUCTIVE, False, True, 0.8),
+    ("SETUP_1H", "Setup 1h", OccurrenceCategory.SEMI_PRODUCTIVE, False, True, 0.8),
+    ("SETUP_1H30", "Setup 1h30", OccurrenceCategory.SEMI_PRODUCTIVE, False, True, 0.8),
+    ("SETUP_2H", "Setup 2h", OccurrenceCategory.SEMI_PRODUCTIVE, False, True, 0.8),
+    ("MANUTENCAO", "Manutenção", OccurrenceCategory.UNPRODUCTIVE, False, True, 0.0),
+    ("SEM_PECA", "Sem Peça", OccurrenceCategory.UNPRODUCTIVE, False, False, 0.0),
+    ("ESPERANDO_PECA", "Esperando Peça", OccurrenceCategory.UNPRODUCTIVE, False, False, 0.0),
+    ("REUNIAO", "Reunião", OccurrenceCategory.UNPRODUCTIVE, False, False, 0.0),
+    ("LIMPEZA", "Limpeza", OccurrenceCategory.UNPRODUCTIVE, False, False, 0.0),
+    ("TROCA_OP", "Troca de OP", OccurrenceCategory.UNPRODUCTIVE, False, False, 0.0),
+    ("RETRABALHO", "Retrabalho", OccurrenceCategory.UNPRODUCTIVE, True, True, 0.5),
+    ("PROGRAMA", "Programa CNC", OccurrenceCategory.UNPRODUCTIVE, False, False, 0.0),
+    ("TREINAMENTO", "Treinamento", OccurrenceCategory.UNPRODUCTIVE, False, False, 0.0),
+]
+OPERATOR_NAMES = [
+    "Adriano da Silva", "Arthur Gonçalves", "Marco Antonio", "Guilherme Costa",
+    "Ricardo Pereira", "Alcioni Donato", "Aliff Fernandes", "Eduardo Santos",
+    "Felipe Oliveira", "Lucas Mendes", "Rafael Souza", "Bruno Martins",
+    "Thiago Ribeiro", "Carlos Alberto",
+]
+SCRAP_REASONS = [
+    "Dimensional Errado Usinagem", "Trinca na Fundição", "Porosidade",
+    "Rechupe", "Empenamento", "Dureza Fora", "Defeito de Superfície",
+    "Outros",
+]
+SCRAP_SUPPLIERS = [
+    "Fundição Criciúma", "Fundição Tubarão", "Aços Especiais Sul",
+    "MetalBrut Ltda", "Fundiminas", "Aço Forte",
+]
+MACHINING_OPERATIONS = [
+    "Lado 1", "Lado 2", "Furação", "Rosqueamento", "Acabamento",
+    "Desbaste", "Chanfro", "Retífica",
+]
+ADJUSTMENT_JUSTIFICATIONS = [
+    "Troca de ferramenta por modelo mais eficiente.",
+    "Revisão de parâmetros de corte após teste.",
+    "Ajuste de fixação reduziu tempo de setup.",
+    "Material mais duro que o especificado.",
+    "Desgaste prematuro da ferramenta.",
+    "Otimização do programa CNC.",
+    "Mudança de estratégia de usinagem.",
+    "Ferramenta com vida útil abaixo do esperado.",
 ]
 
 
@@ -342,7 +403,7 @@ def generate_roles_and_users(session, fake: Faker, employees, count: int = 70) -
         users.append(
             User(
                 username=username,
-                email=f"{username}@opsvision.example",
+                email=f"{username}@tazzin.example",
                 employee_id=employee.id,
                 role_id=random.choice(roles).id,
                 is_active=random.random() > 0.1,
@@ -735,6 +796,171 @@ def generate_audit_logs(session, fake: Faker, users, count: int = 350):
     return logs
 
 
+def generate_machining(session, production_lines, employees, work_orders, count_appointments: int = 4500):
+    """Generate machines, operators, occurrence types and appointments for the Usinagem module."""
+    # Occurrence types (seed catalog)
+    occ_types = [
+        OccurrenceType(
+            code=code, description=desc, category=cat,
+            impacts_efficiency=eff, impacts_oee=oee, weight=w,
+        )
+        for code, desc, cat, eff, oee, w in OCCURRENCE_TYPES_SEED
+    ]
+    session.add_all(occ_types)
+    session.flush()
+    prod_type = [o for o in occ_types if o.category == OccurrenceCategory.PRODUCTIVE][0]
+    setup_types = [o for o in occ_types if o.category == OccurrenceCategory.SEMI_PRODUCTIVE]
+    unprod_types = [o for o in occ_types if o.category == OccurrenceCategory.UNPRODUCTIVE]
+
+    # Machines
+    machines = [
+        Machine(
+            code=f"CNC-{i:02d}", name=f"{MACHINE_NAMES[i % len(MACHINE_NAMES)]} {i:02d}",
+            production_line_id=random.choice(production_lines).id, active=True,
+        )
+        for i in range(1, 13)
+    ]
+    session.add_all(machines)
+    session.flush()
+
+    # Operators (linked to employees)
+    active_employees = [e for e in employees if e.employment_status.value == "active"]
+    operator_employees = random.sample(active_employees, k=min(len(OPERATOR_NAMES), len(active_employees)))
+    operators = [
+        Operator(
+            employee_id=emp.id, code=f"OP-{i:02d}", name=OPERATOR_NAMES[i],
+            shift=1 if i < 7 else 2, active=True,
+        )
+        for i, emp in enumerate(operator_employees)
+    ]
+    session.add_all(operators)
+    session.flush()
+
+    # Appointments
+    wo_numbers = [wo.order_number for wo in work_orders if wo.status != WorkOrderStatus.CANCELLED]
+    appointments = []
+    for _ in range(count_appointments):
+        day = random_date()
+        operator = random.choice(operators)
+        machine = random.choice(machines)
+        # 65% production, 15% setup, 20% unproductive
+        roll = random.random()
+        if roll < 0.65:
+            occ = prod_type
+            qty = random.randint(5, 120)
+            eff = round(random.gauss(92, 18), 2)
+            eff = max(20, min(eff, 250))
+        elif roll < 0.80:
+            occ = random.choice(setup_types)
+            qty = random.randint(0, 1)
+            eff = 0
+        else:
+            occ = random.choice(unprod_types)
+            qty = 0
+            eff = 0
+
+        duration = round(random.uniform(10, 180), 2)
+        start_hour = random.randint(6, 20)
+        start_min = random.randint(0, 59)
+        start_t = time(start_hour, start_min)
+        end_min_total = start_hour * 60 + start_min + int(duration)
+        end_h = min(end_min_total // 60, 23)
+        end_m = end_min_total % 60
+        end_t = time(end_h, end_m)
+
+        total_prod_day = random.randint(max(qty, 1), max(qty * 3, 10))
+        appointments.append(Appointment(
+            appointment_date=day, machine_id=machine.id, operator_id=operator.id,
+            work_order_number=random.choice(wo_numbers) if wo_numbers and random.random() > 0.1 else None,
+            operation=random.choice(MACHINING_OPERATIONS) if random.random() > 0.3 else None,
+            occurrence_type_id=occ.id,
+            start_time=start_t, end_time=end_t, duration_minutes=duration,
+            quantity=qty, efficiency_pct=eff, standard_time=round(duration * random.uniform(0.8, 1.2), 2),
+            total_production=total_prod_day,
+            lot_code=f"L-{random.randint(1000, 9999)}" if random.random() > 0.4 else None,
+        ))
+        if len(appointments) % 1000 == 0:
+            session.add_all(appointments)
+            session.flush()
+            appointments = []
+    session.add_all(appointments)
+    session.flush()
+    return machines, operators, occ_types
+
+
+def generate_scrap(session, operators, machines, work_orders, count: int = 380):
+    """Generate scrap parts and scrap records for the Refugo module."""
+    # Scrap parts catalog
+    parts = []
+    for i in range(1, 51):
+        supplier = random.choice(SCRAP_SUPPLIERS)
+        parts.append(ScrapPart(
+            supplier=supplier, part_code=f"PC-{i:04d}",
+            item_code=f"BRT-PC-{i:04d}", active=True,
+        ))
+    session.add_all(parts)
+    session.flush()
+
+    wo_numbers = [wo.order_number for wo in work_orders if wo.status != WorkOrderStatus.CANCELLED]
+    records = []
+    for _ in range(count):
+        day = random_date()
+        operator = random.choice(operators)
+        machine = random.choice(machines)
+        part = random.choice(parts)
+        reason_1 = random.choice(SCRAP_REASONS)
+        q1 = random.randint(1, 8)
+        reason_2 = random.choice(SCRAP_REASONS) if random.random() > 0.6 else None
+        q2 = random.randint(1, 4) if reason_2 else None
+        reason_3 = random.choice(SCRAP_REASONS) if random.random() > 0.85 else None
+        q3 = random.randint(1, 3) if reason_3 else None
+        total = q1 + (q2 or 0) + (q3 or 0)
+        records.append(ScrapRecord(
+            record_date=day, operator_id=operator.id, machine_id=machine.id,
+            work_order_number=random.choice(wo_numbers) if wo_numbers and random.random() > 0.2 else None,
+            part_code=part.part_code, part_description=f"Peça {part.part_code}",
+            supplier=part.supplier,
+            reason_1=reason_1, quantity_1=q1, notes_1=None,
+            reason_2=reason_2, quantity_2=q2, notes_2=None,
+            reason_3=reason_3, quantity_3=q3, notes_3=None,
+            total_quantity=total, pending=random.random() > 0.9, active=True,
+        ))
+    session.add_all(records)
+    session.flush()
+    return records
+
+
+def generate_adjustments(session, operators, machines, work_orders, count: int = 220):
+    """Generate time adjustments for the Ajustes module."""
+    wo_numbers = [wo.order_number for wo in work_orders if wo.status != WorkOrderStatus.CANCELLED]
+    adjustments = []
+    for _ in range(count):
+        day = random_date()
+        operator = random.choice(operators)
+        machine = random.choice(machines)
+        prev = round(random.uniform(30, 600), 2)
+        # 60% improvements, 40% worsenings
+        if random.random() < 0.6:
+            curr = round(prev * random.uniform(0.5, 0.95), 2)
+        else:
+            curr = round(prev * random.uniform(1.05, 1.5), 2)
+        adjustments.append(TimeAdjustment(
+            record_date=random_datetime(day),
+            work_order_number=random.choice(wo_numbers) if wo_numbers and random.random() > 0.2 else None,
+            operator_id=operator.id, machine_id=machine.id,
+            part_code=f"PC-{random.randint(1, 50):04d}",
+            part_description=f"Peça PC-{random.randint(1, 50):04d}",
+            quantity=round(random.uniform(10, 500), 2),
+            operation=random.choice(MACHINING_OPERATIONS),
+            previous_time_seconds=prev, current_time_seconds=curr,
+            justification=random.choice(ADJUSTMENT_JUSTIFICATIONS),
+            active=True,
+        ))
+    session.add_all(adjustments)
+    session.flush()
+    return adjustments
+
+
 def _write_dataset_version(session) -> None:
     """Record DATASET_VERSION so the bootstrap can detect stale datasets."""
     from sqlalchemy import text
@@ -793,6 +1019,12 @@ def run(seed: int = 42, reset: bool = False) -> None:
         generate_maintenance(session, fake, locations, employees)
         print("Generating quality activity...")
         generate_quality(session, fake, products, work_orders, employees, locations)
+        print("Generating machining (usinagem) data...")
+        machines, operators, occ_types = generate_machining(session, production_lines, employees, work_orders)
+        print("Generating scrap (refugo) data...")
+        generate_scrap(session, operators, machines, work_orders)
+        print("Generating time adjustments (ajustes) data...")
+        generate_adjustments(session, operators, machines, work_orders)
         print("Generating audit trail...")
         generate_audit_logs(session, fake, users)
 
