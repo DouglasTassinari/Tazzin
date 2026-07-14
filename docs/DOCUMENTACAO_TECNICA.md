@@ -3,7 +3,7 @@
 > **Plataforma de Inteligência Operacional Empresarial** — documentação de referência
 > para desenvolvedores, arquitetos e avaliadores técnicos.
 >
-> Repositório: [github.com/DouglasTassinari/OpsVision](https://github.com/DouglasTassinari/OpsVision) · Licença: MIT · Python ≥ 3.11
+> Repositório: [github.com/DouglasTassinari/Tazzin](https://github.com/DouglasTassinari/Tazzin) · Licença: MIT · Python ≥ 3.11
 
 ---
 
@@ -139,7 +139,7 @@ módulos se reduz a um **contrato de IDs**.
 ## 3. Estrutura de Pastas
 
 ```
-OpsVision/                    # o repo ainda usa o nome anterior
+Tazzin/
 ├── app/                      # todo o código da aplicação
 │   ├── core/                 # transversal: config, logging, exceções, métricas, health, bootstrap
 │   ├── database/             # engine, sessão e models (1 arquivo por módulo)
@@ -685,11 +685,18 @@ internacional com a interface em inglês e o público local em português.
 
 ### 10.12 Nomenclatura do repositório
 
-O produto e o pacote já são `tazzin`, mas o repositório ainda carrega o nome
-anterior: a pasta local chama-se `OpsVision2`, o remoto `OpsVision`, e o
-deploy responde em `opsvision.streamlit.app`. Renomear o repositório exige
-reapontar o app no painel do Streamlit Community Cloud — por isso ficou de
-fora do rebranding. Padronizar evita confusão em clones e paths de CI.
+Produto, pacote, repositório e deploy já são `tazzin`. Sobra um resíduo: a
+**pasta local** de trabalho ainda se chama `OpsVision2`. Nada no código
+depende disso (o `sys.path` é resolvido em runtime a partir do arquivo), mas
+renomeá-la evita confusão em clones e em paths de CI.
+
+O repositório foi renomeado de `OpsVision` para `Tazzin` no GitHub. Clones
+antigos continuam funcionando por causa do redirect que o GitHub mantém, mas
+convém reapontar o remote:
+
+```bash
+git remote set-url origin https://github.com/DouglasTassinari/Tazzin.git
+```
 
 ---
 
@@ -810,13 +817,13 @@ Sem acesso ao código desses projetos, as conexões de maior probabilidade são:
 
 | Lacuna | Impacto |
 |---|---|
-| Sem CI/CD | Nenhuma prova automatizada de que os 153 testes passam; sem badge |
+| Sem CI/CD | Nenhuma prova automatizada de que os 244 testes passam; sem badge |
 | Sem tags/releases | `pyproject.toml` diz v1.0.0, mas o GitHub não conta essa história |
 | Sem evidência visual no README | Um dashboard sem screenshot é uma tese sem gráfico |
 | Sem demo pública linkada | O bootstrap para cloud existe, mas não há link de demo |
 | Sem *About*/topics no repositório | Descoberta e primeira impressão prejudicadas |
 | Sem templates de issue/PR | Sinaliza projeto não preparado para colaboração |
-| Nome divergente (Sistema TAZZIN2 local vs Sistema TAZZIN remoto) | Fricção pequena, mas evitável |
+| Pasta local ainda chamada `OpsVision2` (repo já é `Tazzin`) | Fricção pequena, mas evitável |
 
 ### 13.2 README — melhorias específicas
 

@@ -7,7 +7,7 @@ despertar se o app estiver hibernando e mantém a sessão aberta por alguns
 segundos. Executado pelo workflow .github/workflows/keep-alive.yml.
 
 Uso:
-    APP_URL=https://opsvision.streamlit.app python scripts/keep_alive.py
+    APP_URL=https://tazzin.streamlit.app python scripts/keep_alive.py
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-APP_URL = os.environ.get("APP_URL", "https://opsvision.streamlit.app")
+APP_URL = os.environ.get("APP_URL", "https://tazzin.streamlit.app")
 WAKE_BUTTON_TEXTS = ["get this app back up", "app back up", "wake"]
 
 
