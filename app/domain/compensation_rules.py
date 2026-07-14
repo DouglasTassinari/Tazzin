@@ -54,6 +54,12 @@ def _money(value) -> Decimal:
     return _dec(value).quantize(CENTS, rounding=ROUND_HALF_UP)
 
 
+def money(value) -> Decimal:
+    """Arredondamento monetário do módulo (2 casas, half-up), exposto para quem
+    compõe valores fora daqui — o working-set da sessão, por exemplo."""
+    return _money(value)
+
+
 # --------------------------------------------------------------------------- #
 # Piso do sindicato                                                           #
 # --------------------------------------------------------------------------- #

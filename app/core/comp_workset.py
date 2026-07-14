@@ -12,12 +12,17 @@ repository layers stay pure and database-only.
 """
 from __future__ import annotations
 
+from typing import MutableMapping
+
 import streamlit as st
 
 from app.database.base import session_scope
 from app.services.compensation_service import CompensationSnapshot, CompensationService
 
 _STATE_KEY = "comp_workset"
+# Todo widget da página usa este prefixo, para o "Restaurar base" conseguir
+# limpá-los junto com o snapshot (ver reset_workset).
+WIDGET_PREFIX = "comp_"
 
 
 def get_workset() -> CompensationSnapshot:
@@ -28,6 +33,20 @@ def get_workset() -> CompensationSnapshot:
     return st.session_state[_STATE_KEY]
 
 
+def clear_state(state: MutableMapping) -> None:
+    """Remove o snapshot e o estado dos widgets da página de um mapa de sessão.
+
+    Separada de :func:`reset_workset` para poder ser testada com um dicionário
+    comum, sem runtime do Streamlit. Além do snapshot, limpa os widgets: um
+    ``selectbox`` que ficou apontando para um cargo excluído na sessão traria um
+    valor que não existe mais na base recarregada. Zerar as duas coisas é o que
+    faz o botão ser mesmo equivalente ao F5.
+    """
+    state.pop(_STATE_KEY, None)
+    for key in [k for k in state if str(k).startswith(WIDGET_PREFIX)]:
+        state.pop(key, None)
+
+
 def reset_workset() -> None:
     """Discard the session's edits and reload the base (same effect as F5)."""
-    st.session_state.pop(_STATE_KEY, None)
+    clear_state(st.session_state)

@@ -69,6 +69,21 @@ class EmployeeCompDTO:
     final: Decimal | None
     is_leader: bool
     leadership_bonus: Decimal
+    # Só a sessão desativa alguém (Fase 2): a base nunca muda.
+    active: bool = True
+
+
+@dataclass
+class AdjustmentEntry:
+    """Um dissídio aplicado NESTA sessão. Some no F5, como todo o resto."""
+
+    year: int
+    percent: Decimal
+    floor_before: Decimal
+    floor_after: Decimal
+    total_before: Decimal
+    total_after: Decimal
+    headcount: int
 
 
 @dataclass
@@ -78,6 +93,9 @@ class CompensationSnapshot:
     bands: list[tuple[int, Decimal]]  # (anos, percent)
     positions: list[PositionDTO]
     employees: list[EmployeeCompDTO]
+    # Preenchidos só pela sessão (working-set); a base carrega ambos vazios.
+    history: list[AdjustmentEntry] = field(default_factory=list)
+    dirty: bool = False
 
 
 class CompensationService:
