@@ -126,6 +126,6 @@ with chart_col2:
 
 st.divider()
 st.caption(
-    "Use a barra lateral para abrir Vendas, Produção, Estoque, Compras, Financeiro, "
-    "Pessoas, Projetos, Manutenção, Qualidade e Administração."
+    "Na barra lateral, clique em um módulo para abrir seus painéis: "
+    "**Comercial**, **Chão de Fábrica**, **Suprimentos**, **Gestão** e **Sistema**."
 )
