@@ -67,8 +67,16 @@ modulos = {
     ],
     "Gestão": [
         st.Page("pages/5_Financeiro.py", title="Financeiro", icon=":material/payments:", url_path="financeiro"),
-        st.Page("pages/6_Pessoas.py", title="Pessoas", icon=":material/group:", url_path="pessoas"),
         st.Page("pages/7_Projetos.py", title="Projetos", icon=":material/folder_open:", url_path="projetos"),
+    ],
+    "RH": [
+        st.Page("pages/6_Pessoas.py", title="Pessoas", icon=":material/group:", url_path="pessoas"),
+        st.Page(
+            "pages/16_Cargos_e_Salários.py",
+            title="Cargos e Salários",
+            icon=":material/badge:",
+            url_path="cargos-salarios",
+        ),
     ],
     "Sistema": [
         st.Page(
