@@ -74,6 +74,12 @@ modulos = {
     "Gestão": [
         st.Page("pages/5_Financeiro.py", title="Financeiro", icon=":material/payments:", url_path="financeiro"),
         st.Page("pages/7_Projetos.py", title="Projetos", icon=":material/folder_open:", url_path="projetos"),
+        st.Page(
+            "pages/0_Painel_Executivo.py",
+            title="Painel Executivo",
+            icon=":material/insights:",
+            url_path="painel-executivo",
+        ),
     ],
     "RH": [
         st.Page("pages/6_Pessoas.py", title="Pessoas", icon=":material/group:", url_path="pessoas"),

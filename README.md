@@ -2,11 +2,15 @@
 
 > **Menos planilhas. Mais controle.**
 
-The TAZZIN operations platform — a layered, multi-module system covering
-Sales, Customer Relationship, Opportunity Radar, Production, Machining,
-Scrap, Time Adjustments, Inventory, Purchasing, Finance, People, Projects,
-Maintenance, Quality and Administration: the shop floor and the back office
-in one place, instead of one spreadsheet per department.
+TAZZIN is not a closed product — it is a **showcase of independent modules**.
+Each one (Sales, Customer Relationship, Opportunity Radar, Production,
+Machining, Operators, Scrap, Time Adjustments, Inventory, Purchasing, Finance,
+People, Compensation, Projects, Maintenance, Quality, Administration) solves a
+real operational problem, runs on its own, and can be adopted individually and
+fully customized to a company's reality. The home page is a **vitrine** that
+presents them as a catalog; an optional Executive dashboard shows what they can
+do when combined. Adopt one tool — the one that hurts today — and grow one
+module at a time.
 
 The dataset in this repository is **synthetic** — generated from scratch, so
 the whole system can be explored end to end without exposing any real
@@ -56,7 +60,7 @@ app/
   domain/          pure business-rule functions (no I/O), one module per business module
   services/        orchestrates repositories + domain rules; the only layer the UI talks to
   pages/           Streamlit pages, one per module
-  Início.py        Dashboard (executive KPI overview) — home page
+  Início.py        Vitrine — catálogo de módulos independentes (home page)
   main.py          Streamlit entrypoint — registers pages via st.navigation
 scripts/           init_db.py, generate_synthetic_data.py, run_health_check.py
 tests/             mirrors app/ — test_domain/, test_repositories/, test_services/
