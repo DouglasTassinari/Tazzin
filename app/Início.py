@@ -101,8 +101,7 @@ for grupo, modulos in ESTRUTURA:
         colunas = st.columns(3)
         for coluna, modulo in zip(colunas, linha):
             with coluna, st.container(border=True):
-                marca = " 🔒" if modulo.locked else ""
-                st.markdown(f"**{modulo.titulo}**{marca}")
+                st.markdown(f"**{modulo.titulo}**")
                 st.caption(modulo.resolve)
                 if modulo.em_breve:
                     st.markdown('<span class="tz-soon-tag">Em breve</span>', unsafe_allow_html=True)

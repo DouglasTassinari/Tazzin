@@ -39,7 +39,6 @@ class Modulo:
     url_path: str
     path: str | None = None            # arquivo real; None => esqueleto "Em breve"
     abas: tuple[str, ...] = ()          # abas previstas (mostradas no "Em breve")
-    locked: bool = False               # 🔒 acesso restrito (só sinalização na amostra)
 
     @property
     def em_breve(self) -> bool:
@@ -55,6 +54,9 @@ ESTRUTURA: list[tuple[str, tuple[Modulo, ...]]] = [
         Modulo("Indicador do Prazo de Entrega", ":material/local_shipping:",
                "Acompanhamento do prazo de entrega dos pedidos.",
                "prazo-entrega"),
+        Modulo("Projetos", ":material/folder_open:",
+               "O que está em andamento, o avanço e os próximos marcos.",
+               "projetos", path="pages/7_Projetos.py"),
     )),
     ("Comercial", (
         Modulo("Acompanhamento CRM", ":material/hub:",
@@ -79,16 +81,14 @@ ESTRUTURA: list[tuple[str, tuple[Modulo, ...]]] = [
                "Fila de contato da carteira ativa, sem planilha paralela.",
                "relacionamento", path="pages/11_Relacionamento.py"),
         Modulo("Descoberta de Mercado", ":material/travel_explore:",
-               "BI sobre a base nacional da Receita Federal.",
-               "descoberta-mercado", locked=True),
+               "Onde estão as empresas que você deveria atender, por atividade, praça e porte.",
+               "descoberta-mercado", path="pages/18_Descoberta_Mercado.py"),
         Modulo("Relacionamento com Leads", ":material/person_search:",
-               "Fila de contato para quem ainda não comprou.",
-               "relacionamento-leads", locked=True),
+               "Fila de contato de quem demonstrou interesse e ainda não comprou.",
+               "relacionamento-leads", path="pages/19_Leads.py"),
         Modulo("Inteligência de Licitações", ":material/gavel:",
-               "Licitações públicas do PNCP cruzadas por NCM.",
-               "licitacoes", locked=True,
-               abas=("Mercado", "Oportunidades", "Atas", "Licitações",
-                     "Catálogo", "Cobertura", "Operação")),
+               "Licitações públicas do PNCP cruzadas por NCM com o seu catálogo.",
+               "licitacoes", path="pages/20_Licitacoes.py"),
     )),
     ("Industrial", (
         Modulo("Chão de Fábrica", ":material/precision_manufacturing:",
@@ -112,6 +112,12 @@ ESTRUTURA: list[tuple[str, tuple[Modulo, ...]]] = [
         Modulo("Calibração e Manutenção", ":material/build:",
                "Vencimentos de calibração com semáforo, cadastro de ativos e lançamento de serviço.",
                "manutencao", path="pages/8_Manutenção.py"),
+        Modulo("Qualidade", ":material/verified:",
+               "Taxa de defeito, não-conformidades e o que está reprovando.",
+               "qualidade", path="pages/9_Qualidade.py"),
+        Modulo("Compras", ":material/shopping_cart:",
+               "Quanto se gasta, com quais fornecedores e como eles se saem.",
+               "compras", path="pages/4_Compras.py"),
     )),
     ("TI", (
         Modulo("Manutenção de TI", ":material/computer:",
@@ -168,7 +174,7 @@ ESTRUTURA: list[tuple[str, tuple[Modulo, ...]]] = [
                "Painel para telão — chão de fábrica.",
                "tv-industrial"),
     )),
-    ("Admin · Em Desenvolvimento", (
+    ("Admin · Indicadores", (
         Modulo("Painel Site", ":material/public:",
                "Visão executiva e análise do site institucional.",
                "painel-site", abas=("Visão Executiva", "Análise do Site")),
@@ -205,19 +211,6 @@ ESTRUTURA: list[tuple[str, tuple[Modulo, ...]]] = [
                "Permissões e usuários do sistema.",
                "controle-acesso", abas=("Permissões", "Usuários")),
     )),
-    # Módulos que existem na demo mas NÃO estão na amostra. Ficam aqui,
-    # acessíveis, até você decidir se mantém, realoca ou remove.
-    ("Outros (fora da amostra)", (
-        Modulo("Qualidade", ":material/verified:",
-               "Taxa de defeito, não-conformidades e o que está reprovando.",
-               "qualidade", path="pages/9_Qualidade.py"),
-        Modulo("Compras", ":material/shopping_cart:",
-               "Quanto se gasta, com quais fornecedores e como eles se saem.",
-               "compras", path="pages/4_Compras.py"),
-        Modulo("Projetos", ":material/folder_open:",
-               "O que está em andamento, o avanço e os próximos marcos.",
-               "projetos", path="pages/7_Projetos.py"),
-    )),
 ]
 
 
@@ -251,11 +244,10 @@ def _render_em_breve(m: Modulo) -> None:
         unsafe_allow_html=True,
     )
 
-    lock = " · 🔒 acesso restrito" if m.locked else ""
     st.markdown(
         f"""
         <div class="tz-soon">
-          <span class="tz-soon-badge">Em breve{lock}</span>
+          <span class="tz-soon-badge">Em breve</span>
           <h1>{m.titulo}</h1>
           <p>{m.resolve}</p>
         </div>
@@ -287,8 +279,7 @@ def _placeholder_page(m: Modulo) -> Callable[[], None]:
 
 def _as_page(m: Modulo) -> st.Page:
     alvo = m.path if m.path is not None else _placeholder_page(m)
-    titulo = f"{m.titulo} 🔒" if m.locked else m.titulo
-    return st.Page(alvo, title=titulo, icon=m.icone, url_path=m.url_path)
+    return st.Page(alvo, title=m.titulo, icon=m.icone, url_path=m.url_path)
 
 
 def nav_modulos() -> dict[str, list[st.Page]]:

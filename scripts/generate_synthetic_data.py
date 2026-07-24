@@ -95,11 +95,21 @@ from app.database.models.compensation import (
     SeniorityBand,
     UnionFloor,
 )
+from app.database.models.market import CompanySize, CompanyStatus, MarketCompany
+from app.database.models.leads import Lead, LeadOrigin, LeadStatus
+from app.database.models.bidding import (
+    CatalogItem,
+    PriceRecord,
+    Tender,
+    TenderItem,
+    TenderModality,
+    TenderStatus,
+)
 
 # Bump whenever the generated dataset changes shape (volumes, salaries,
 # accounting rules...): deployments with a database seeded by an older
 # version reseed automatically on boot (see app/core/bootstrap.py).
-DATASET_VERSION = 6
+DATASET_VERSION = 7
 
 DATASET_START = date(2023, 1, 1)
 DATASET_END = date.today()
@@ -1070,6 +1080,253 @@ def generate_adjustments(session, operators, machines, work_orders, count: int =
     return adjustments
 
 
+# --------------------------------------------------------------------------- #
+# Descoberta de Mercado · Leads · Licitações                                    #
+# --------------------------------------------------------------------------- #
+# CNAEs plausíveis para a vizinhança industrial da empresa da amostra.
+CNAE_POOL = [
+    ("25.11-0", "Fabricação de estruturas metálicas"),
+    ("25.39-0", "Usinagem, solda e tratamento de metais"),
+    ("28.14-3", "Fabricação de válvulas e conexões"),
+    ("29.49-2", "Fabricação de peças para veículos automotores"),
+    ("22.19-6", "Fabricação de artefatos de borracha"),
+    ("24.24-5", "Metalurgia de metais não-ferrosos"),
+    ("27.10-4", "Fabricação de motores e geradores"),
+    ("33.14-7", "Manutenção e reparação de máquinas industriais"),
+    ("46.69-9", "Comércio atacadista de máquinas e equipamentos"),
+    ("42.99-5", "Obras de engenharia civil"),
+    ("20.99-1", "Fabricação de produtos químicos"),
+    ("35.11-5", "Geração de energia elétrica"),
+    ("86.10-1", "Atividades de atendimento hospitalar"),
+    ("10.99-6", "Fabricação de produtos alimentícios"),
+]
+
+UF_PESOS = {
+    "SP": 26, "MG": 12, "PR": 10, "RS": 9, "SC": 8, "RJ": 8, "BA": 5,
+    "GO": 5, "ES": 4, "PE": 4, "CE": 3, "MT": 3, "PA": 2, "DF": 1,
+}
+
+# (ncm, descrição, família). Os 13 primeiros entram no catálogo próprio —
+# o resto fica de fora de propósito, para a aba Cobertura ter o que mostrar.
+NCM_POOL = [
+    ("7318.15.00", "Parafuso de aço inoxidável", "Fixadores"),
+    ("7318.16.00", "Porca de aço carbono", "Fixadores"),
+    ("7318.22.00", "Arruela lisa metálica", "Fixadores"),
+    ("8482.10.10", "Rolamento rígido de esferas", "Rolamentos"),
+    ("8482.20.10", "Rolamento de rolos cônicos", "Rolamentos"),
+    ("8483.30.00", "Mancal sem rolamento", "Transmissão"),
+    ("8483.40.10", "Redutor de velocidade", "Transmissão"),
+    ("7307.19.20", "Conexão de ferro fundido", "Conexões"),
+    ("7307.29.00", "Conexão de aço inoxidável", "Conexões"),
+    ("8481.80.95", "Válvula de esfera industrial", "Válvulas"),
+    ("8481.30.00", "Válvula de retenção", "Válvulas"),
+    ("7326.90.90", "Peça usinada de aço sob desenho", "Usinados"),
+    ("7616.99.00", "Peça usinada de alumínio", "Usinados"),
+    ("8544.49.00", "Cabo elétrico isolado", "Elétrica"),
+    ("8536.50.90", "Chave seccionadora", "Elétrica"),
+    ("9026.20.10", "Manômetro industrial", "Instrumentação"),
+    ("9032.89.829", "Controlador de processo", "Instrumentação"),
+    ("4016.93.00", "Junta de vedação de borracha", "Vedação"),
+    ("3926.90.90", "Peça técnica de plástico", "Plásticos"),
+    ("8413.70.10", "Bomba centrífuga", "Bombas"),
+]
+
+ORGAO_MODELOS = [
+    "Prefeitura Municipal de {cidade}",
+    "Secretaria de Estado da Saúde de {uf}",
+    "Universidade Federal de {cidade}",
+    "Instituto Federal de {uf}",
+    "Companhia de Saneamento de {uf}",
+    "Departamento de Estradas de Rodagem de {uf}",
+    "Hospital Universitário de {cidade}",
+    "Tribunal de Justiça de {uf}",
+]
+
+
+def generate_market(session, fake: Faker, count: int = 1800) -> None:
+    """Base pública de empresas (espelho sintético da Receita)."""
+    ufs, pesos_uf = list(UF_PESOS), list(UF_PESOS.values())
+    portes = [CompanySize.MEI, CompanySize.ME, CompanySize.EPP, CompanySize.DEMAIS]
+    situacoes = [CompanyStatus.ATIVA, CompanyStatus.BAIXADA, CompanyStatus.SUSPENSA, CompanyStatus.INAPTA]
+    capital_por_porte = {
+        CompanySize.MEI: (1_000, 30_000),
+        CompanySize.ME: (20_000, 300_000),
+        CompanySize.EPP: (200_000, 3_000_000),
+        CompanySize.DEMAIS: (1_000_000, 60_000_000),
+    }
+
+    vistos: set[str] = set()
+    empresas = []
+    for _ in range(count):
+        cnpj = fake.cnpj()
+        if cnpj in vistos:
+            continue
+        vistos.add(cnpj)
+        cnae_code, cnae_label = random.choice(CNAE_POOL)
+        porte = random.choices(portes, weights=[30, 34, 22, 14])[0]
+        minimo, maximo = capital_por_porte[porte]
+        empresas.append(
+            MarketCompany(
+                cnpj=cnpj,
+                legal_name=fake.company(),
+                trade_name=fake.company() if random.random() < 0.55 else None,
+                cnae_code=cnae_code,
+                cnae_label=cnae_label,
+                city=fake.city(),
+                state=random.choices(ufs, weights=pesos_uf)[0],
+                size=porte,
+                status=random.choices(situacoes, weights=[78, 13, 5, 4])[0],
+                opening_date=fake.date_between(start_date=date(1995, 1, 1), end_date=DATASET_END),
+                share_capital=round(random.uniform(minimo, maximo), 2),
+            )
+        )
+    session.add_all(empresas)
+    session.flush()
+
+
+def generate_leads(session, fake: Faker, employees, count: int = 320) -> None:
+    """Leads: quem entrou por algum canal e ainda não virou pedido."""
+    donos = employees[:40]
+    origens = [LeadOrigin.SITE, LeadOrigin.INDICACAO, LeadOrigin.FEIRA,
+               LeadOrigin.OUTBOUND, LeadOrigin.MARKETPLACE]
+    status_pool = [LeadStatus.NOVO, LeadStatus.EM_CONTATO, LeadStatus.QUALIFICADO, LeadStatus.DESCARTADO]
+    ufs, pesos_uf = list(UF_PESOS), list(UF_PESOS.values())
+
+    registros = []
+    for _ in range(count):
+        # Metade da base é de entrada recente: uma fila só com lead velho não
+        # se parece com operação viva, e o farol perderia o sentido.
+        if random.random() < 0.5:
+            criado = fake.date_between(start_date=DATASET_END - timedelta(days=90), end_date=DATASET_END)
+        else:
+            criado = fake.date_between(start_date=DATASET_START, end_date=DATASET_END)
+        status = random.choices(status_pool, weights=[32, 34, 20, 14])[0]
+        # Lead novo muitas vezes nunca foi tocado — é justamente o que a fila cobra.
+        if status == LeadStatus.NOVO and random.random() < 0.6:
+            ultimo_contato = None
+        elif random.random() < 0.65:
+            # A maior parte de quem está em jogo foi tocada nas últimas semanas.
+            base = max(criado, DATASET_END - timedelta(days=30))
+            ultimo_contato = fake.date_between(start_date=base, end_date=DATASET_END)
+        else:
+            ultimo_contato = fake.date_between(start_date=criado, end_date=DATASET_END)
+        registros.append(
+            Lead(
+                company_name=fake.company(),
+                contact_name=fake.name(),
+                city=fake.city(),
+                state=random.choices(ufs, weights=pesos_uf)[0],
+                segment=random.choice(["retail", "wholesale", "enterprise"]),
+                origin=random.choices(origens, weights=[30, 18, 12, 28, 12])[0],
+                status=status,
+                created_date=criado,
+                last_contact_date=ultimo_contato,
+                owner_employee_id=random.choice(donos).id if donos else None,
+                potential_value=round(random.uniform(3_000, 180_000), 2),
+            )
+        )
+    session.add_all(registros)
+    session.flush()
+
+
+def generate_bidding(session, fake: Faker, count_tenders: int = 420) -> None:
+    """Licitações do PNCP, itens por NCM, atas de preço e o catálogo próprio."""
+    # Preço de referência por NCM: catálogo e licitações orbitam o mesmo valor,
+    # senão a comparação "preço da ata × nosso preço" viraria ruído.
+    precos_base = {ncm: round(random.uniform(15, 850), 2) for ncm, _, _ in NCM_POOL}
+
+    # Catálogo: o que a empresa sabe vender (subconjunto dos NCMs do mercado).
+    for ncm, descricao, familia in NCM_POOL[:13]:
+        session.add(
+            CatalogItem(
+                ncm=ncm,
+                description=descricao,
+                family=familia,
+                our_price=round(precos_base[ncm] * random.uniform(0.90, 1.10), 2),
+            )
+        )
+
+    modalidades = [TenderModality.PREGAO_ELETRONICO, TenderModality.DISPENSA,
+                   TenderModality.CONCORRENCIA, TenderModality.INEXIGIBILIDADE]
+    ufs, pesos_uf = list(UF_PESOS), list(UF_PESOS.values())
+    encerradas = [TenderStatus.HOMOLOGADA, TenderStatus.FRACASSADA, TenderStatus.CANCELADA]
+
+    licitacoes = []
+    for indice in range(count_tenders):
+        # A última fatia nasce recente para que a abertura caia no futuro e o
+        # módulo tenha oportunidades de verdade em aberto.
+        if indice >= count_tenders - 110:
+            publicacao = fake.date_between(start_date=DATASET_END - timedelta(days=45), end_date=DATASET_END)
+        else:
+            publicacao = fake.date_between(start_date=DATASET_START, end_date=DATASET_END - timedelta(days=60))
+        abertura = publicacao + timedelta(days=random.randint(8, 45))
+        situacao = TenderStatus.ABERTA if abertura > DATASET_END else random.choices(
+            encerradas, weights=[72, 14, 14]
+        )[0]
+
+        uf = random.choices(ufs, weights=pesos_uf)[0]
+        cidade = fake.city()
+        orgao = random.choice(ORGAO_MODELOS).format(cidade=cidade, uf=uf)
+
+        itens = []
+        total = 0.0
+        for _ in range(random.randint(2, 6)):
+            ncm, descricao, _familia = random.choice(NCM_POOL)
+            quantidade = float(random.randint(20, 4000))
+            # Orbita o preço de referência do NCM: o órgão estima perto do mercado.
+            preco = round(precos_base[ncm] * random.uniform(0.85, 1.30), 2)
+            total += quantidade * preco
+            vencedor = fake.company() if situacao == TenderStatus.HOMOLOGADA else None
+            itens.append(
+                TenderItem(
+                    ncm=ncm,
+                    description=descricao,
+                    quantity=quantidade,
+                    unit_price=preco,
+                    awarded_price=round(preco * random.uniform(0.72, 0.98), 2) if vencedor else None,
+                    awarded_supplier=vencedor,
+                )
+            )
+
+        licitacoes.append(
+            Tender(
+                pncp_id=f"{random.randint(10000000, 99999999)}-1-{publicacao.year}/{indice + 1:05d}",
+                organ=orgao,
+                city=cidade,
+                state=uf,
+                modality=random.choices(modalidades, weights=[70, 16, 10, 4])[0],
+                status=situacao,
+                publish_date=publicacao,
+                opening_date=abertura,
+                estimated_value=round(total, 2),
+                items=itens,
+            )
+        )
+
+    session.add_all(licitacoes)
+    session.flush()  # precisa do id para amarrar as atas
+
+    # Ata de registro de preços: sobra das homologadas, valendo por 12 meses.
+    atas = []
+    for licitacao in licitacoes:
+        if licitacao.status != TenderStatus.HOMOLOGADA or random.random() > 0.6:
+            continue
+        item = random.choice(licitacao.items)
+        atas.append(
+            PriceRecord(
+                tender_id=licitacao.id,
+                ncm=item.ncm,
+                organ=licitacao.organ,
+                supplier=item.awarded_supplier or fake.company(),
+                unit_price=item.awarded_price or item.unit_price,
+                quantity=item.quantity,
+                valid_until=licitacao.opening_date + timedelta(days=365),
+            )
+        )
+    session.add_all(atas)
+    session.flush()
+
+
 def _write_dataset_version(session) -> None:
     """Record DATASET_VERSION so the bootstrap can detect stale datasets."""
     from sqlalchemy import text
@@ -1136,6 +1393,12 @@ def run(seed: int = 42, reset: bool = False) -> None:
         generate_scrap(session, operators, machines, work_orders)
         print("Generating time adjustments (ajustes) data...")
         generate_adjustments(session, operators, machines, work_orders)
+        print("Generating market discovery (base de empresas) data...")
+        generate_market(session, fake)
+        print("Generating leads...")
+        generate_leads(session, fake, employees)
+        print("Generating public bidding (licitações) data...")
+        generate_bidding(session, fake)
         print("Generating audit trail...")
         generate_audit_logs(session, fake, users)
 
