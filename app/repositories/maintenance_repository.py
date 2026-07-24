@@ -28,6 +28,25 @@ class AssetRepository(BaseRepository[Asset]):
         stmt = select(Asset).where(Asset.criticality == criticality)
         return list(self.session.execute(stmt).scalars().all())
 
+    def last_service_by_asset(self) -> dict[int, date]:
+        """Data do último serviço efetivamente registrado, por ativo (``id`` → data).
+
+        Base do vencimento de calibração: um ativo que nunca foi atendido conta
+        a partir da instalação (quem resolve isso é o serviço).
+        """
+        stmt = (
+            select(MaintenanceRequest.asset_id, func.max(MaintenanceLog.log_date))
+            .join(MaintenanceLog, MaintenanceLog.request_id == MaintenanceRequest.id)
+            .group_by(MaintenanceRequest.asset_id)
+        )
+        ultimo: dict[int, date] = {}
+        for asset_id, quando in self.session.execute(stmt).all():
+            if quando is None:
+                continue
+            # SQLite pode devolver texto em func.max sobre coluna Date.
+            ultimo[asset_id] = date.fromisoformat(quando) if isinstance(quando, str) else quando
+        return ultimo
+
 
 class MaintenanceRequestRepository(BaseRepository[MaintenanceRequest]):
     model = MaintenanceRequest

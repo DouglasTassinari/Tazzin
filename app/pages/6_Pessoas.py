@@ -21,11 +21,11 @@ from app.core.branding import apply_branding
 from app.database.base import session_scope
 from app.services.people_service import PeopleService
 
-apply_branding("Pessoas")
+apply_branding("Funcionários")
 
 ensure_demo_data_once()
 
-st.title("Pessoas")
+st.title("Funcionários")
 st.caption("Quadro de funcionários e utilização de folgas.")
 
 col1, col2 = st.columns(2)

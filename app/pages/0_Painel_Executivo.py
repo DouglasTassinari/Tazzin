@@ -25,10 +25,10 @@ from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.analytics_service import AnalyticsService
 
-apply_branding("Painel Executivo")
+apply_branding("Painel Estratégico")
 ensure_demo_data_once()
 
-st.title("Painel Executivo")
+st.title("Painel Estratégico")
 st.caption(
     "Uma visão que cruza os módulos. Opcional: cada ferramenta funciona sozinha — "
     "este quadro só mostra o que dá para enxergar quando elas conversam."

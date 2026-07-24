@@ -19,11 +19,11 @@ from app.core.branding import apply_branding
 from app.database.base import session_scope
 from app.services.administration_service import AdministrationService
 
-apply_branding("Administração")
+apply_branding("Monitor · Sistema")
 
 ensure_demo_data_once()
 
-st.title("Administração")
+st.title("Monitor do Sistema")
 st.caption("Usuários, trilha de auditoria e saúde do sistema.")
 
 with session_scope() as session:

@@ -19,7 +19,7 @@ from app.core.branding import apply_branding
 from app.database.base import session_scope
 from app.services.inventory_service import InventoryService
 
-apply_branding("Estoque")
+apply_branding("Cobertura de Estoque")
 
 ensure_demo_data_once()
 
@@ -30,7 +30,7 @@ CATEGORIAS = {
     "packaging": "Embalagens",
 }
 
-st.title("Estoque")
+st.title("Cobertura de Estoque")
 st.caption("Níveis de estoque disponível e alertas de reposição.")
 
 with session_scope() as session:

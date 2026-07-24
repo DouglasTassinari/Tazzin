@@ -20,7 +20,7 @@ from app.database.base import session_scope
 from app.domain.machining_rules import YIELD_TARGET_PCT
 from app.services.machining_service import MachiningService
 
-apply_branding("Usinagem")
+apply_branding("Chão de Fábrica")
 ensure_demo_data_once()
 
 CATEGORY_LABELS = {
@@ -29,7 +29,7 @@ CATEGORY_LABELS = {
     "unproductive": ("Improdutivo", charts.NEGATIVO),
 }
 
-st.title("Usinagem")
+st.title("Chão de Fábrica")
 st.caption("Chão de fábrica: rendimento dos operadores, utilização de máquinas e composição de tempo.")
 
 col1, col2 = st.columns(2)

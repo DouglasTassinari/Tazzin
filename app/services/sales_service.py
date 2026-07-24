@@ -64,6 +64,10 @@ class SalesService:
     def monthly_revenue(self, start: date, end: date) -> list[tuple[str, float]]:
         return self.orders.revenue_by_month(start, end)
 
+    @track("sales.daily_revenue")
+    def daily_revenue(self, start: date, end: date) -> list[tuple[str, float, int]]:
+        return self.orders.revenue_by_day(start, end)
+
     @track("sales.top_customers")
     def top_customers(self, start: date, end: date, limit: int = 10) -> list[tuple[str, float]]:
         return self.orders.top_customers(start, end, limit)

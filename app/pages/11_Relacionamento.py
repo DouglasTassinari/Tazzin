@@ -24,7 +24,7 @@ from app.database.base import session_scope
 from app.domain import relationship_rules
 from app.services.relationship_service import RelationshipService
 
-apply_branding("Relacionamento")
+apply_branding("Relacionamento com Cliente")
 
 ensure_demo_data_once()
 

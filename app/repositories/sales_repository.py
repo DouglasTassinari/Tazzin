@@ -54,6 +54,30 @@ class SalesOrderRepository(BaseRepository[SalesOrder]):
             for month, gross, avg_discount in rows
         ]
 
+    def revenue_by_day(self, start: date, end: date) -> list[tuple[str, float, int]]:
+        """Receita líquida por dia: ``(dia, receita, nº de pedidos)``.
+
+        Mesmo cálculo de líquido do :meth:`revenue_by_month` (bruto menos o
+        desconto médio), só que agrupado por data — é a base da Tabela Diária.
+        """
+        stmt = (
+            select(
+                func.strftime("%Y-%m-%d", SalesOrder.order_date).label("dia"),
+                func.sum(SalesOrderItem.quantity * SalesOrderItem.unit_price).label("gross"),
+                func.avg(SalesOrder.discount_pct).label("avg_discount"),
+                func.count(func.distinct(SalesOrder.id)).label("pedidos"),
+            )
+            .join(SalesOrderItem, SalesOrderItem.order_id == SalesOrder.id)
+            .where(SalesOrder.order_date >= start, SalesOrder.order_date <= end)
+            .where(SalesOrder.status != OrderStatus.CANCELLED)
+            .group_by("dia")
+            .order_by("dia")
+        )
+        return [
+            (dia, round(float(gross or 0) * (1 - float(avg_discount or 0) / 100), 2), int(pedidos or 0))
+            for dia, gross, avg_discount, pedidos in self.session.execute(stmt).all()
+        ]
+
     def revenue_by_segment(self, start: date, end: date) -> list[tuple[str, float]]:
         """Gross revenue grouped by customer segment (enum value, total)."""
         total = func.sum(SalesOrderItem.quantity * SalesOrderItem.unit_price)

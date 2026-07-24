@@ -94,3 +94,32 @@ class MaintenanceService:
     @track("maintenance.open_requests_by_priority")
     def open_requests_by_priority(self) -> list[tuple[str, int]]:
         return self.requests.open_by_priority()
+
+    @track("maintenance.asset_registry")
+    def asset_registry(self, today: date) -> list[dict]:
+        """Cadastro de ativos com o vencimento de calibração e o farol de cada um.
+
+        O vencimento parte do último serviço registrado; ativo que nunca foi
+        atendido conta a partir da data de instalação. Ordena pelo mais crítico
+        no tempo (vencidos primeiro).
+        """
+        ultimo_servico = self.assets.last_service_by_asset()
+        registro: list[dict] = []
+        for asset in self.assets.list():
+            base = ultimo_servico.get(asset.id, asset.install_date)
+            vencimento = maintenance_rules.next_calibration_date(base, asset.criticality)
+            registro.append(
+                {
+                    "tag": asset.asset_tag,
+                    "nome": asset.name,
+                    "categoria": asset.category.value,
+                    "criticidade": asset.criticality.value,
+                    "instalacao": asset.install_date,
+                    "ultimo_servico": ultimo_servico.get(asset.id),
+                    "vencimento": vencimento,
+                    "dias": (vencimento - today).days,
+                    "farol": maintenance_rules.calibration_band(vencimento, today),
+                }
+            )
+        registro.sort(key=lambda r: r["vencimento"])
+        return registro

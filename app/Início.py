@@ -5,6 +5,9 @@ módulos independentes. Cada cartão abaixo é uma ferramenta que resolve um
 problema real da operação, funciona sozinha e pode ser contratada e
 personalizada de forma individual. A home conta essa história e leva a
 pessoa para o módulo que interessa.
+
+Os cartões vêm de ``app/core/navigation.py`` — a mesma ``ESTRUTURA`` que
+monta o menu lateral, para vitrine e menu nunca divergirem.
 """
 # ruff: noqa: E402  -- sys.path bootstrap below must run before the app.* imports
 from __future__ import annotations
@@ -29,64 +32,12 @@ from app.core.branding import (
     VERDE,
     apply_branding,
 )
+from app.core.navigation import ESTRUTURA
 
 apply_branding("Início")
 ensure_demo_data_once()
 
-# ── Catálogo: cada módulo pelo PROBLEMA que resolve, não pela tabela que tem. ──
-# (grupo, [(caminho_da_página, título, ícone, o-que-resolve)])
-CATALOGO: list[tuple[str, list[tuple[str, str, str, str]]]] = [
-    ("Comercial", [
-        ("pages/1_Vendas.py", "Vendas", ":material/sell:",
-         "Quanto entrou, de quem, e quais clientes puxam o faturamento."),
-        ("pages/11_Relacionamento.py", "Relacionamento", ":material/diversity_3:",
-         "Cada cliente e o histórico da relação, sem planilha paralela."),
-        ("pages/12_Radar.py", "Radar de Oportunidades", ":material/radar:",
-         "Onde estão as próximas vendas antes de virarem pedido."),
-    ]),
-    ("Chão de Fábrica", [
-        ("pages/2_Produção.py", "Produção", ":material/factory:",
-         "Ordens, rendimento por linha e refugo, no ritmo da fábrica."),
-        ("pages/13_Usinagem.py", "Usinagem", ":material/precision_manufacturing:",
-         "Rendimento dos operadores, uso das máquinas e composição do tempo."),
-        ("pages/17_Operadores.py", "Operadores", ":material/engineering:",
-         "Visão 360º por pessoa: produção, setup, refugo e bonificação."),
-        ("pages/14_Refugo.py", "Refugo", ":material/recycling:",
-         "Onde o refugo se concentra, por que acontece e o que ele custa."),
-        ("pages/15_Ajustes.py", "Ajustes", ":material/tune:",
-         "Saldo de tempo ganho ou perdido em cada melhoria de processo."),
-        ("pages/8_Manutenção.py", "Manutenção", ":material/build:",
-         "Ativos, chamados abertos e o custo de manter tudo rodando."),
-        ("pages/9_Qualidade.py", "Qualidade", ":material/verified:",
-         "Taxa de defeito, não-conformidades e o que está reprovando."),
-    ]),
-    ("Suprimentos", [
-        ("pages/3_Estoque.py", "Estoque", ":material/inventory_2:",
-         "O que tem, o que está acabando e onde o capital está parado."),
-        ("pages/4_Compras.py", "Compras", ":material/shopping_cart:",
-         "Quanto se gasta, com quais fornecedores e como eles se saem."),
-    ]),
-    ("Gestão", [
-        ("pages/5_Financeiro.py", "Financeiro", ":material/payments:",
-         "A receber, a pagar e a saúde do caixa mês a mês."),
-        ("pages/7_Projetos.py", "Projetos", ":material/folder_open:",
-         "O que está em andamento, o avanço e os próximos marcos."),
-        ("pages/0_Painel_Executivo.py", "Painel Executivo", ":material/insights:",
-         "Opcional: a visão que cruza os módulos quando eles conversam."),
-    ]),
-    ("RH", [
-        ("pages/6_Pessoas.py", "Pessoas", ":material/group:",
-         "Quadro ativo, ausências e a estrutura por departamento."),
-        ("pages/16_Cargos_e_Salários.py", "Cargos e Salários", ":material/badge:",
-         "Faixas, enquadramento e simulação de mérito por cargo."),
-    ]),
-    ("Sistema", [
-        ("pages/10_Administração.py", "Administração", ":material/admin_panel_settings:",
-         "Saúde do sistema, acessos e auditoria dos eventos."),
-    ]),
-]
-
-# ── CSS só do que o tema global não cobre (hero e pílulas de valor). ──
+# ── CSS só do que o tema global não cobre (hero, pílulas e tag "Em breve"). ──
 st.markdown(
     f"""
     <style>
@@ -102,6 +53,9 @@ st.markdown(
       .tz-pill {{ border: 1px solid {AZUL}; color: {CINZA_CLARO}; border-radius: 999px;
                   padding: 6px 14px; font-size: .86rem; background: rgba(74,144,217,.10); }}
       .tz-pill b {{ color: {AZUL}; }}
+      .tz-soon-tag {{ display: inline-block; background: rgba(76,175,80,.12);
+                      border: 1px solid {VERDE}; color: {VERDE}; border-radius: 999px;
+                      padding: 3px 12px; font-size: .78rem; font-weight: 600; }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -132,23 +86,28 @@ st.markdown(
 )
 
 st.caption(
-    "Os dados desta amostra são fictícios, gerados só para você navegar. "
-    "Explore qualquer módulo pelo cartão ou pela barra lateral."
+    "Os dados desta amostra são fictícios, gerados só para você navegar. Alguns "
+    "painéis já estão prontos; outros aparecem como **Em breve** — juntos, formam "
+    "o mapa completo do sistema. Explore pelo cartão ou pela barra lateral."
 )
 st.divider()
 
-# ── Catálogo de módulos: um cartão clicável por ferramenta. ──
-for grupo, modulos in CATALOGO:
+# ── Catálogo de módulos: um cartão por painel, no mesmo agrupamento do menu. ──
+for grupo, modulos in ESTRUTURA:
     st.subheader(grupo)
     # Três cartões por linha; completa a última linha com espaços vazios.
     for inicio in range(0, len(modulos), 3):
         linha = modulos[inicio:inicio + 3]
         colunas = st.columns(3)
-        for coluna, (caminho, titulo, icone, problema) in zip(colunas, linha):
+        for coluna, modulo in zip(colunas, linha):
             with coluna, st.container(border=True):
-                st.markdown(f"**{titulo}**")
-                st.caption(problema)
-                st.page_link(caminho, label="Abrir painel", icon=icone)
+                marca = " 🔒" if modulo.locked else ""
+                st.markdown(f"**{modulo.titulo}**{marca}")
+                st.caption(modulo.resolve)
+                if modulo.em_breve:
+                    st.markdown('<span class="tz-soon-tag">Em breve</span>', unsafe_allow_html=True)
+                else:
+                    st.page_link(modulo.path, label="Abrir painel", icon=modulo.icone)
     st.write("")
 
 st.divider()
