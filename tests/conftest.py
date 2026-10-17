@@ -1,6 +1,17 @@
 """Shared pytest fixtures: an isolated in-memory SQLite database per test."""
 from __future__ import annotations
 
+import os
+import tempfile
+
+# The health check talks to the app-wide engine, which defaults to data/tazzin.db.
+# Point it at a throwaway file before the app is imported, so the suite also
+# passes on a fresh clone (and in CI), where data/ does not exist yet.
+os.environ.setdefault(
+    "TAZZIN_DATABASE_URL",
+    "sqlite:///" + os.path.join(tempfile.mkdtemp(prefix="tazzin-tests-"), "tazzin.db").replace(os.sep, "/"),
+)
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

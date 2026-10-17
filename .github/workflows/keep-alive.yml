@@ -1,13 +1,18 @@
 # Visita o app no Streamlit Community Cloud a cada 6 horas com um navegador
 # headless para ele nunca hibernar (e despertá-lo caso já tenha hibernado).
-# Atenção: o GitHub desativa workflows agendados após 60 dias sem atividade
-# no repositório — basta um commit ou execução manual para reativar.
+# O GitHub desativa workflows agendados após 60 dias sem commits no
+# repositório. O último passo reativa este workflow pela API a cada execução,
+# o que reinicia essa contagem sem precisar de commit.
 name: Manter painel acordado
 
 on:
   schedule:
     - cron: "23 */6 * * *" # a cada 6 horas
   workflow_dispatch: # permite disparo manual na aba Actions
+
+permissions:
+  contents: read
+  actions: write # para o passo que reinicia a contagem de inatividade
 
 jobs:
   keep-alive:
@@ -29,3 +34,9 @@ jobs:
 
       - name: Visitar o painel
         run: python scripts/keep_alive.py
+
+      - name: Reiniciar a contagem de 60 dias de inatividade
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/keep-alive.yml/enable"
