@@ -12,6 +12,7 @@ monta o menu lateral, para vitrine e menu nunca divergirem.
 # ruff: noqa: E402  -- sys.path bootstrap below must run before the app.* imports
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -53,9 +54,6 @@ st.markdown(
       .tz-pill {{ border: 1px solid {AZUL}; color: {CINZA_CLARO}; border-radius: 999px;
                   padding: 6px 14px; font-size: .86rem; background: rgba(74,144,217,.10); }}
       .tz-pill b {{ color: {AZUL}; }}
-      .tz-soon-tag {{ display: inline-block; background: rgba(76,175,80,.12);
-                      border: 1px solid {VERDE}; color: {VERDE}; border-radius: 999px;
-                      padding: 3px 12px; font-size: .78rem; font-weight: 600; }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -85,35 +83,34 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.caption(
-    "Os dados desta amostra são fictícios, gerados só para você navegar. Alguns "
-    "painéis já estão prontos; outros aparecem como **Em breve** — juntos, formam "
-    "o mapa completo do sistema. Explore pelo cartão ou pela barra lateral."
-)
-st.divider()
+st.caption("Os dados desta amostra são fictícios, gerados só para você navegar.")
 
-# ── Catálogo de módulos: um cartão por painel, no mesmo agrupamento do menu. ──
-for grupo, modulos in ESTRUTURA:
-    st.subheader(grupo)
-    # Três cartões por linha; completa a última linha com espaços vazios.
-    for inicio in range(0, len(modulos), 3):
-        linha = modulos[inicio:inicio + 3]
-        colunas = st.columns(3)
-        for coluna, modulo in zip(colunas, linha):
-            with coluna, st.container(border=True):
-                st.markdown(f"**{modulo.titulo}**")
+# ── Um cartão grande por área, com os painéis que ela reúne. ─────────────────
+_RESUMO_AREA = {
+    "Comercial": "Encontre onde está a próxima venda, quem atender e que licitação vale a pena.",
+    "Industrial": "A fábrica em tempo real: máquinas, operadores e produção.",
+    "Pessoas": "Cargos, salários e o quadro de funcionários sem planilha paralela.",
+    "Gestão": "A visão da diretoria: faturamento, caixa e o cruzamento de tudo.",
+}
+
+for inicio in range(0, len(ESTRUTURA), 2):
+    colunas = st.columns(2)
+    for coluna, (grupo, modulos) in zip(colunas, ESTRUTURA[inicio:inicio + 2]):
+        with coluna, st.container(border=True):
+            st.subheader(grupo)
+            st.caption(_RESUMO_AREA.get(grupo, ""))
+            for modulo in modulos:
+                st.page_link(modulo.path, label=modulo.titulo, icon=modulo.icone)
                 st.caption(modulo.resolve)
-                if modulo.em_breve:
-                    st.markdown('<span class="tz-soon-tag">Em breve</span>', unsafe_allow_html=True)
-                else:
-                    st.page_link(modulo.path, label="Abrir painel", icon=modulo.icone)
-    st.write("")
 
 st.divider()
 st.markdown(
     f"<p style='color:{CINZA_MEDIO};font-size:.92rem;'>"
-    "Falta o módulo que resolveria o <i>seu</i> problema? Ele ainda não existe aqui — "
-    "mas é exatamente isso que eu construo: a ferramenta sob medida para a sua operação."
+    "Falta o módulo que resolveria o <i>seu</i> problema? "
+    "É exatamente isso que eu construo: a ferramenta sob medida para a sua operação."
     "</p>",
     unsafe_allow_html=True,
 )
+_contato = os.getenv("TAZZIN_CONTATO_URL", "").strip()
+if _contato:
+    st.link_button("Falar sobre o meu caso", _contato, type="primary")
