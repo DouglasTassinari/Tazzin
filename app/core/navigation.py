@@ -65,6 +65,12 @@ ESTRUTURA: list[tuple[str, tuple[Modulo, ...]]] = [
         Modulo("Pós-Vendas", ":material/sentiment_satisfied:",
                "Nota de recomendação (NPS), satisfação e quem precisa de retorno depois da entrega.",
                "pos-vendas", path="pages/21_Pos_Vendas.py"),
+        Modulo("Recuperação de Clientes", ":material/replay:",
+               "Quem parou de comprar, quem foi abordado e quanto voltou.",
+               "recuperacao-clientes", path="pages/22_Recuperacao_Clientes.py"),
+        Modulo("Indicador do Prazo de Entrega", ":material/local_shipping:",
+               "Pedidos entregues na data prometida (OTD) e os atrasados em aberto.",
+               "prazo-entrega", path="pages/24_Prazo_Entrega.py"),
     )),
     ("Industrial", (
         Modulo("Chão de Fábrica", ":material/precision_manufacturing:",
@@ -95,6 +101,17 @@ ESTRUTURA: list[tuple[str, tuple[Modulo, ...]]] = [
         Modulo("Financeiro", ":material/payments:",
                "A receber, a pagar e a saúde do caixa mês a mês.",
                "financeiro", path="pages/5_Financeiro.py"),
+        Modulo("Bônus Distribuidores", ":material/redeem:",
+               "Desconto progressivo por faixa de compra, apurado ao vivo dos pedidos.",
+               "bonus-distribuidores", path="pages/23_Bonus_Distribuidores.py"),
+    )),
+    ("Modo TV", (
+        Modulo("Modo TV Comercial", ":material/tv:",
+               "Telão que gira entre satisfação, entregas, clientes de volta e distribuidores.",
+               "tv-comercial", path="pages/25_Modo_TV_Comercial.py"),
+        Modulo("Modo TV Industrial", ":material/tv:",
+               "Telão do chão de fábrica: produção, tempo e rendimento.",
+               "tv-industrial", path="pages/26_Modo_TV_Industrial.py"),
     )),
 ]
 

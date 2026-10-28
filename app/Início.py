@@ -91,6 +91,7 @@ _RESUMO_AREA = {
     "Clientes": "Depois da venda: o que o cliente achou da entrega e quem precisa de retorno.",
     "Industrial": "A fábrica em tempo real: máquinas, operadores e produção.",
     "Pessoas": "Cargos, salários e o quadro de funcionários sem planilha paralela.",
+    "Modo TV": "Telões que giram sozinhos: o comercial e o chão de fábrica à vista de todos.",
     "Gestão": "A visão da diretoria: faturamento, caixa e o cruzamento de tudo.",
 }
 

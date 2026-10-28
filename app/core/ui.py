@@ -170,12 +170,12 @@ def kpis(cartoes: list[dict], por_linha: int = 4) -> None:
 # e outra aparecer sem ler. Verde só para o que é bom (mesma regra dos gráficos).
 _SITUACAO = {
     VERDE: {"ativo", "ativa", "ok", "aprovado", "aprovada", "concluído", "concluida", "concluída",
-            "promotor", "resolvido", "confirmada", "no prazo", "em dia", "quente", "dentro da meta", "positivo", "pago"},
+            "promotor", "resolvido", "reativado", "voltou a comprar", "confirmada", "no prazo", "em dia", "quente", "dentro da meta", "positivo", "pago"},
     AMBAR: {"morna", "atenção", "atencao", "a vencer", "pendente", "em andamento", "planejado",
-            "rascunho", "observar", "em contato"},
+            "rascunho", "observar", "em contato", "leve", "média", "media", "em risco"},
     VERMELHO: {"vencida", "vencido", "atrasado", "atrasada", "reprovado", "reprovada", "crítico",
-               "critico", "negativo", "fora da meta", "inativo", "inativa", "detrator"},
-    AZUL: {"fria", "em análise", "em analise", "novo", "nova", "neutro"},
+               "critico", "negativo", "fora da meta", "inativo", "inativa", "detrator", "grave", "alta", "perdido"},
+    AZUL: {"fria", "em análise", "em analise", "novo", "nova", "neutro", "baixa", "médio"},
 }
 _TOM_DE = {v.lower(): cor for cor, nomes in _SITUACAO.items() for v in nomes}
 _NAO_ESCALAR = ("id", "código", "codigo", "ncm", "cnpj", "ano", "mês", "mes", "cep", "ddd")

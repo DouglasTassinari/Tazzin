@@ -96,8 +96,10 @@ from app.database.models.compensation import (
     UnionFloor,
 )
 from app.database.models.market import CompanySize, CompanyStatus, MarketCompany
+from app.database.models.delivery import OrderDelivery
 from app.database.models.leads import Lead, LeadOrigin, LeadStatus
 from app.database.models.postsales import PostSaleSurvey, SurveyFollowUp
+from app.database.models.recovery import RecoveryChannel, RecoveryContact, RecoveryResult
 from app.database.models.bidding import (
     CatalogItem,
     PriceRecord,
@@ -110,7 +112,7 @@ from app.database.models.bidding import (
 # Bump whenever the generated dataset changes shape (volumes, salaries,
 # accounting rules...): deployments with a database seeded by an older
 # version reseed automatically on boot (see app/core/bootstrap.py).
-DATASET_VERSION = 8
+DATASET_VERSION = 10
 
 DATASET_START = date(2023, 1, 1)
 DATASET_END = date.today()
@@ -1230,6 +1232,108 @@ def generate_leads(session, fake: Faker, employees, count: int = 320) -> None:
     session.flush()
 
 
+def generate_recovery(session, employees, customers, products, locations, sales_orders) -> None:
+    """Recuperação de clientes: contatos a quem parou de comprar e quem voltou.
+
+    Só se aborda cliente que já estava parado há mais de 180 dias na data do
+    contato. Quem volta ganha um pedido faturado depois do contato, ligado ao
+    contato — a receita recuperada sai desse pedido, não de um número solto.
+    Os pedidos novos entram em ``sales_orders`` e seguem para estoque e financeiro.
+    """
+    donos = employees[:40]
+    compras = [o for o in sales_orders if o.status in (OrderStatus.SHIPPED, OrderStatus.INVOICED)]
+    datas_por_cliente: dict[int, list] = {}
+    for o in compras:
+        datas_por_cliente.setdefault(o.customer_id, []).append(o.order_date)
+    ids = list(datas_por_cliente)
+    canais = {RecoveryChannel.PHONE: (35, 0.17), RecoveryChannel.WHATSAPP: (30, 0.19),
+              RecoveryChannel.EMAIL: (25, 0.08), RecoveryChannel.VISIT: (10, 0.32)}
+    abordados: set[int] = set()
+    numero = len(sales_orders)
+    contatos = []
+    tentativas = 0
+    while len(contatos) < 150 and tentativas < 6000:
+        tentativas += 1
+        data = random_date(DATASET_END - timedelta(days=300), DATASET_END - timedelta(days=3))
+        cid = random.choice(ids)
+        if cid in abordados:
+            continue
+        datas = datas_por_cliente[cid]
+        antes = [d for d in datas if d < data]
+        if not antes or (data - max(antes)).days <= 180:
+            continue  # ainda não estava parado o bastante para ser abordado
+        if any(0 <= (d - data).days <= 60 for d in datas):
+            continue  # voltou sozinho: não é recuperação
+        abordados.add(cid)
+        canal = random.choices(list(canais), weights=[w for w, _ in canais.values()])[0]
+        pedido_id = None
+        if random.random() < canais[canal][1]:
+            numero += 1
+            volta = data + timedelta(days=random.randint(5, 55))
+            if volta > DATASET_END:
+                volta = DATASET_END
+            pedido = SalesOrder(
+                order_number=f"SO-{numero:06d}", customer_id=cid, location_id=random.choice(locations).id,
+                status=OrderStatus.INVOICED, order_date=volta, discount_pct=round(random.uniform(0, 12), 2),
+            )
+            session.add(pedido)
+            session.flush()
+            for produto in random.sample(products, k=random.randint(1, 4)):
+                session.add(SalesOrderItem(
+                    order_id=pedido.id, product_id=produto.id, quantity=random.randint(8, 140),
+                    unit_price=round(float(produto.unit_price) * random.uniform(0.95, 1.05), 2)))
+            sales_orders.append(pedido)
+            pedido_id = pedido.id
+            resultado, nota = RecoveryResult.REACTIVATED, "Voltou a comprar depois do contato."
+        else:
+            resultado = random.choices(
+                [RecoveryResult.NO_ANSWER, RecoveryResult.INTERESTED, RecoveryResult.DECLINED],
+                weights=[55, 30, 15])[0]
+            nota = {RecoveryResult.NO_ANSWER: None, RecoveryResult.INTERESTED: "Pediu proposta nova.",
+                    RecoveryResult.DECLINED: "Já fechou com outro fornecedor."}[resultado]
+        contatos.append(RecoveryContact(
+            customer_id=cid, contact_date=data, channel=canal, result=resultado,
+            recovered_order_id=pedido_id, note=nota,
+            owner_employee_id=random.choice(donos).id if donos else None,
+        ))
+    session.add_all(contatos)
+    session.flush()
+
+
+def generate_deliveries(session, customers, sales_orders) -> None:
+    """Prazo de entrega: data prometida e data real dos pedidos despachados.
+
+    ~10% de atraso hoje, com tendência de melhora nos últimos 24 meses; cliente
+    corporativo recebe mais atraso (pedidos maiores e mais complexos). Pedido
+    recente ainda em trânsito fica sem data de entrega.
+    """
+    janela_ini = DATASET_END - timedelta(days=730)
+    segmento_de = {c.id: c.segment for c in customers}
+    extra = {CustomerSegment.RETAIL: 0.0, CustomerSegment.WHOLESALE: -0.02, CustomerSegment.ENTERPRISE: 0.05}
+    registros = []
+    for order in sales_orders:
+        if order.status not in (OrderStatus.SHIPPED, OrderStatus.INVOICED) or order.order_date < janela_ini:
+            continue
+        prometida = order.order_date + timedelta(days=random.randint(7, 25))
+        progresso = (order.order_date - janela_ini).days / 730
+        p_atraso = max(0.14 - 0.06 * progresso + extra[segmento_de[order.customer_id]], 0.02)
+        if random.random() < p_atraso:
+            atraso = random.choices([1, 2, 3, 4, 5, 6, 7, 9, 12], weights=[20, 18, 14, 12, 10, 8, 6, 8, 4])[0]
+        else:
+            atraso = -random.randint(0, 4)  # entregou antes ou no dia
+        entregue = prometida + timedelta(days=atraso)
+        if entregue > DATASET_END:
+            entregue = None  # ainda em trânsito
+        registros.append(OrderDelivery(order_id=order.id, customer_id=order.customer_id,
+                                       promised_date=prometida, delivered_date=entregue))
+    # Pedidos com prazo vencido e sem entrega: a lista de atrasos em aberto precisa de casos vivos.
+    vencendo = [r for r in registros if DATASET_END - timedelta(days=14) <= r.promised_date < DATASET_END]
+    for r in random.sample(vencendo, k=min(6, len(vencendo))):
+        r.delivered_date = None
+    session.add_all(registros)
+    session.flush()
+
+
 def generate_postsales(session, employees, sales_orders, customers) -> None:
     """Pós-Vendas: pesquisa de satisfação enviada após a entrega.
 
@@ -1447,6 +1551,10 @@ def run(seed: int = 42, reset: bool = False) -> None:
 
         print("Generating sales orders...")
         sales_orders = generate_sales(session, customers, products, locations)
+        print("Generating customer recovery (recuperação) contacts...")
+        generate_recovery(session, employees, customers, products, locations, sales_orders)
+        print("Generating delivery (prazo de entrega) records...")
+        generate_deliveries(session, customers, sales_orders)
         print("Generating purchase orders...")
         purchase_orders = generate_purchasing(session, suppliers, products, locations)
         print("Generating production work orders...")
