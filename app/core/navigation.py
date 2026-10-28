@@ -61,6 +61,11 @@ ESTRUTURA: list[tuple[str, tuple[Modulo, ...]]] = [
                "Licitações públicas do PNCP cruzadas por NCM com o seu catálogo.",
                "licitacoes", path="pages/20_Licitacoes.py"),
     )),
+    ("Clientes", (
+        Modulo("Pós-Vendas", ":material/sentiment_satisfied:",
+               "Nota de recomendação (NPS), satisfação e quem precisa de retorno depois da entrega.",
+               "pos-vendas", path="pages/21_Pos_Vendas.py"),
+    )),
     ("Industrial", (
         Modulo("Chão de Fábrica", ":material/precision_manufacturing:",
                "Visão de engenharia da fábrica: máquinas, tempos e processo.",

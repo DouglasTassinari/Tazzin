@@ -88,6 +88,7 @@ st.caption("Os dados desta amostra são fictícios, gerados só para você naveg
 # ── Um cartão grande por área, com os painéis que ela reúne. ─────────────────
 _RESUMO_AREA = {
     "Comercial": "Encontre onde está a próxima venda, quem atender e que licitação vale a pena.",
+    "Clientes": "Depois da venda: o que o cliente achou da entrega e quem precisa de retorno.",
     "Industrial": "A fábrica em tempo real: máquinas, operadores e produção.",
     "Pessoas": "Cargos, salários e o quadro de funcionários sem planilha paralela.",
     "Gestão": "A visão da diretoria: faturamento, caixa e o cruzamento de tudo.",

@@ -97,6 +97,7 @@ from app.database.models.compensation import (
 )
 from app.database.models.market import CompanySize, CompanyStatus, MarketCompany
 from app.database.models.leads import Lead, LeadOrigin, LeadStatus
+from app.database.models.postsales import PostSaleSurvey, SurveyFollowUp
 from app.database.models.bidding import (
     CatalogItem,
     PriceRecord,
@@ -109,7 +110,7 @@ from app.database.models.bidding import (
 # Bump whenever the generated dataset changes shape (volumes, salaries,
 # accounting rules...): deployments with a database seeded by an older
 # version reseed automatically on boot (see app/core/bootstrap.py).
-DATASET_VERSION = 7
+DATASET_VERSION = 8
 
 DATASET_START = date(2023, 1, 1)
 DATASET_END = date.today()
@@ -1229,6 +1230,83 @@ def generate_leads(session, fake: Faker, employees, count: int = 320) -> None:
     session.flush()
 
 
+def generate_postsales(session, employees, sales_orders, customers) -> None:
+    """Pós-Vendas: pesquisa de satisfação enviada após a entrega.
+
+    Janela de 24 meses com tendência de melhora (nota e adesão sobem ao longo
+    do período), para os gráficos terem história. Cliente corporativo é mais
+    exigente; atacado, mais fiel.
+    """
+    janela_ini = DATASET_END - timedelta(days=730)
+    donos = employees[:40]
+    segmento_de = {c.id: c.segment for c in customers}
+    ajuste_promotor = {CustomerSegment.RETAIL: 0.0, CustomerSegment.WHOLESALE: 0.05,
+                       CustomerSegment.ENTERPRISE: -0.09}
+    elogios = ["Entrega no prazo e produto como combinado.", "Atendimento rápido, voltarei a comprar.",
+               "Qualidade acima do esperado.", "Embalagem e documentação impecáveis.",
+               "Time comercial muito atencioso.", "Preço justo e prazo cumprido."]
+    criticas = ["Entrega atrasou e ninguém avisou.", "Produto veio diferente do pedido.",
+                "Demora para responder ao chamado.", "Nota fiscal com erro, precisei pedir segunda via.",
+                "Embalagem chegou danificada.", "Prazo prometido não foi cumprido."]
+    neutros = ["Atendeu, mas poderia ser mais ágil.", "Produto ok, prazo apertado.", "Sem problemas, nada de especial."]
+
+    registros = []
+    for order in sales_orders:
+        if order.status not in (OrderStatus.SHIPPED, OrderStatus.INVOICED):
+            continue
+        enviada = order.order_date + timedelta(days=random.randint(5, 12))
+        if enviada < janela_ini or enviada > DATASET_END or random.random() > 0.9:
+            continue
+        progresso = (enviada - janela_ini).days / max((DATASET_END - janela_ini).days, 1)
+        survey = PostSaleSurvey(
+            order_id=order.id, customer_id=order.customer_id, sent_date=enviada,
+            owner_employee_id=random.choice(donos).id if donos else None,
+        )
+        if random.random() < 0.24 + 0.14 * progresso:
+            p_prom = 0.58 + 0.14 * progresso + ajuste_promotor[segmento_de[order.customer_id]]
+            p_det = 0.15 - 0.06 * progresso
+            sorteio = random.random()
+            if sorteio < p_prom:
+                survey.nps_score = random.choices([9, 10], weights=[40, 60])[0]
+                survey.csat_score = random.choices([5, 4], weights=[75, 25])[0]
+                survey.comment = random.choice(elogios) if random.random() < 0.3 else None
+            elif sorteio < p_prom + p_det:
+                survey.nps_score = random.choices([0, 1, 2, 3, 4, 5, 6], weights=[3, 2, 4, 6, 10, 25, 30])[0]
+                survey.csat_score = random.choices([1, 2, 3], weights=[20, 40, 40])[0]
+                survey.comment = random.choice(criticas) if random.random() < 0.7 else None
+            else:
+                survey.nps_score = random.choice([7, 8])
+                survey.csat_score = random.choices([4, 3], weights=[95, 5])[0]
+                survey.comment = random.choice(neutros) if random.random() < 0.2 else None
+            survey.responded_date = min(enviada + timedelta(days=random.randint(0, 6)), DATASET_END)
+            if survey.nps_score <= 6:
+                dias = (DATASET_END - survey.responded_date).days
+                if dias > 30:
+                    survey.follow_up = SurveyFollowUp.RESOLVED   # retorno antigo já foi concluído
+                elif dias > 14:
+                    survey.follow_up = random.choices(
+                        [SurveyFollowUp.RESOLVED, SurveyFollowUp.IN_CONTACT, SurveyFollowUp.PENDING],
+                        weights=[72, 18, 10])[0]
+                else:
+                    survey.follow_up = random.choices(
+                        [SurveyFollowUp.PENDING, SurveyFollowUp.IN_CONTACT, SurveyFollowUp.RESOLVED],
+                        weights=[40, 35, 25])[0]
+        registros.append(survey)
+
+    # A fila de retorno precisa de casos vivos: garante alguns detratores nas
+    # últimas três semanas; o restante da fila é resíduo de meses anteriores.
+    recentes = [r for r in registros if r.responded_date and r.responded_date >= DATASET_END - timedelta(days=21)]
+    faltam = 3 - sum(1 for r in recentes if r.nps_score <= 6)
+    for survey in random.sample([r for r in recentes if r.nps_score >= 7], k=max(0, min(faltam, len(recentes)))):
+        survey.nps_score = random.choices([3, 4, 5, 6], weights=[10, 20, 35, 35])[0]
+        survey.csat_score = random.choice([2, 3])
+        survey.comment = random.choice(criticas)
+        survey.follow_up = random.choices(
+            [SurveyFollowUp.PENDING, SurveyFollowUp.IN_CONTACT], weights=[60, 40])[0]
+    session.add_all(registros)
+    session.flush()
+
+
 def generate_bidding(session, fake: Faker, count_tenders: int = 420) -> None:
     """Licitações do PNCP, itens por NCM, atas de preço e o catálogo próprio."""
     # Preço de referência por NCM: catálogo e licitações orbitam o mesmo valor,
@@ -1397,6 +1475,8 @@ def run(seed: int = 42, reset: bool = False) -> None:
         generate_market(session, fake)
         print("Generating leads...")
         generate_leads(session, fake, employees)
+        print("Generating post-sales (pós-vendas) surveys...")
+        generate_postsales(session, employees, sales_orders, customers)
         print("Generating public bidding (licitações) data...")
         generate_bidding(session, fake)
         print("Generating audit trail...")

@@ -25,4 +25,4 @@ import streamlit as st
 
 from app.core.navigation import nav_modulos
 
-st.navigation(nav_modulos()).run()
+st.navigation(nav_modulos(), expanded=True).run()

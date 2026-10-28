@@ -17,6 +17,7 @@ from app.database.models import (  # noqa: F401
     maintenance,
     market,
     people,
+    postsales,
     production,
     projects,
     purchasing,
