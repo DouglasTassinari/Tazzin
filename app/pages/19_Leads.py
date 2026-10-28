@@ -19,7 +19,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from app.core import charts, lancamentos
+from app.core import charts, lancamentos, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.core.formatting import format_brl
@@ -46,11 +46,8 @@ STATUS = {
 FAROL = {"vencido": "🔴 Vencido", "atencao": "🟡 Atenção", "ok": "🟢 Em dia"}
 _CHAVE = "leads"
 
-st.title("Relacionamento com Leads")
-st.caption(
-    "Quem demonstrou interesse e ainda não comprou. A fila é ordenada pelo lead "
-    "mais abandonado — quem está há mais tempo sem contato aparece primeiro."
-)
+ui.cabecalho('Comercial', "Relacionamento com Leads", "Quem demonstrou interesse e ainda não comprou. A fila é ordenada pelo lead "
+    "mais abandonado — quem está há mais tempo sem contato aparece primeiro.")
 
 hoje = date.today()
 with session_scope() as session:

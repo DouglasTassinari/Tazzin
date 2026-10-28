@@ -13,7 +13,7 @@ from datetime import date, timedelta
 
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.database.base import session_scope
@@ -29,8 +29,7 @@ CATEGORY_LABELS = {
     "unproductive": ("Improdutivo", charts.NEGATIVO),
 }
 
-st.title("Chão de Fábrica")
-st.caption("Chão de fábrica: rendimento dos operadores, utilização de máquinas e composição de tempo.")
+ui.cabecalho('Industrial', "Chão de Fábrica", "Chão de fábrica: rendimento dos operadores, utilização de máquinas e composição de tempo.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=90)
@@ -73,8 +72,12 @@ with bd_col:
 with comp_col:
     st.markdown("**Horas por tipo de ocorrência**")
     if time_occ:
-        for desc, hours in time_occ[:10]:
-            st.text(f"{desc}: {hours:.1f}h")
+        total_h = sum(h for _, h in time_occ) or 1
+        ui.tabela(
+            [{"Ocorrência": d, "Horas": round(h, 1), "% do total": round(100 * h / total_h, 1)}
+             for d, h in time_occ[:10]],
+            height=36 * (min(len(time_occ), 10) + 1) + 3,
+        )
 
 # ── Yield ranking ──
 st.subheader(f"Ranking de operadores — meta {YIELD_TARGET_PCT:.0f}%")

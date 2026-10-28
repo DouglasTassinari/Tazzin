@@ -16,7 +16,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.core.formatting import format_brl
@@ -32,11 +32,8 @@ SEGMENTOS = {"retail": "Varejo", "wholesale": "Atacado", "enterprise": "Corporat
 _ORDEM_STATUS = ["Dentro do prazo", "Atenção", "Vencido"]
 _COR_STATUS = {"Dentro do prazo": charts.POSITIVO, "Atenção": charts.ATENCAO, "Vencido": charts.NEGATIVO}
 
-st.title("Relacionamento com Cliente")
-st.caption(
-    "Há quantos dias ninguém encosta em cada cliente — comparado ao prazo (SLA) "
-    "que o porte dele exige. Quem estourou o prazo vira fila de ação."
-)
+ui.cabecalho('Comercial', "Relacionamento com Cliente", "Há quantos dias ninguém encosta em cada cliente — comparado ao prazo (SLA) "
+    "que o porte dele exige. Quem estourou o prazo vira fila de ação.")
 
 hoje = date.today()
 with session_scope() as session:

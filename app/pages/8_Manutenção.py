@@ -16,7 +16,7 @@ from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 
-from app.core import charts, lancamentos
+from app.core import charts, lancamentos, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.core.formatting import format_brl
@@ -46,8 +46,7 @@ FAROL = {"vencido": "🔴 Vencido", "atencao": "🟡 A vencer", "ok": "🟢 Em d
 TIPOS_SERVICO = ["Calibração", "Preventiva", "Corretiva"]
 _CHAVE = "manutencao"
 
-st.title("Calibração e Manutenção")
-st.caption("Vencimentos de calibração, conservação de ativos e custo de manutenção.")
+ui.cabecalho('Industrial', "Calibração e Manutenção", "Vencimentos de calibração, conservação de ativos e custo de manutenção.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)

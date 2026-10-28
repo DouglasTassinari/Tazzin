@@ -14,6 +14,7 @@ if _PROJECT_ROOT not in sys.path:
 import pandas as pd
 import streamlit as st
 
+from app.core import ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.database.base import session_scope
@@ -23,8 +24,7 @@ apply_branding("Monitor · Sistema")
 
 ensure_demo_data_once()
 
-st.title("Monitor do Sistema")
-st.caption("Usuários, trilha de auditoria e saúde do sistema.")
+ui.cabecalho('Admin', "Monitor do Sistema", "Usuários, trilha de auditoria e saúde do sistema.")
 
 with session_scope() as session:
     service = AdministrationService(session)

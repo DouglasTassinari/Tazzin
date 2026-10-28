@@ -23,7 +23,7 @@ from decimal import Decimal
 import pandas as pd
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.core.comp_workset import get_workset, reset_workset
@@ -35,8 +35,7 @@ from app.services import compensation_workset as wset
 apply_branding("Cargos e Salários")
 ensure_demo_data_once()
 
-st.title("Cargos e Salários")
-st.caption("Política salarial: cargos, níveis, tempo de casa, enquadramento e dissídio.")
+ui.cabecalho('Pessoas', "Cargos e Salários", "Política salarial: cargos, níveis, tempo de casa, enquadramento e dissídio.")
 
 ws = get_workset()
 bands = wset.bands_of(ws)
@@ -140,7 +139,7 @@ with dashboard_tab:
         listed = [e for e in actives if area_choice == "Todas" or e.area == area_choice]
         listed.sort(key=wset.salary_of, reverse=True)
 
-        st.dataframe(
+        ui.tabela(
             pd.DataFrame(
                 {
                     "Colaborador": [e.name for e in listed],
@@ -293,7 +292,7 @@ with simulator_tab:
         if not sim.steps:
             st.info(f"Nenhuma faixa atingida — a primeira é aos {bands[0][0]} anos de casa.")
         else:
-            st.dataframe(
+            ui.tabela(
                 pd.DataFrame(
                     {
                         "Faixa": [f"{step.years} anos" for step in sim.steps],
@@ -370,7 +369,7 @@ with positions_tab:
     headcount: dict[int, int] = {}
     for emp in actives:
         headcount[emp.position_id] = headcount.get(emp.position_id, 0) + 1
-    st.dataframe(
+    ui.tabela(
         pd.DataFrame(
             {
                 "Cargo": [p.name for p in ws.positions],
@@ -479,7 +478,7 @@ with levels_tab:
             for emp in actives:
                 if emp.level_id is not None:
                     occupants[emp.level_id] = occupants.get(emp.level_id, 0) + 1
-            st.dataframe(
+            ui.tabela(
                 pd.DataFrame(
                     {
                         "Ordem": [level.display_order for level in position_levels],
@@ -704,7 +703,7 @@ with adjustment_tab:
                 preview.lines, key=lambda line: line.after - line.before, reverse=True
             )
             st.markdown("#### Prévia por colaborador")
-            st.dataframe(
+            ui.tabela(
                 pd.DataFrame(
                     {
                         "Colaborador": [names.get(line.key, "—") for line in lines],
@@ -735,7 +734,7 @@ with adjustment_tab:
                 )
             else:
                 total_gap = sum((gap.difference for gap in gaps), Decimal("0"))
-                st.dataframe(
+                ui.tabela(
                     pd.DataFrame(
                         {
                             "Colaborador": [names.get(gap.key, "—") for gap in gaps],
@@ -770,7 +769,7 @@ with adjustment_tab:
     if not ws.history:
         st.info("Nenhum reajuste aplicado nesta sessão.")
     else:
-        st.dataframe(
+        ui.tabela(
             pd.DataFrame(
                 {
                     "Ano-base": [entry.year for entry in ws.history],

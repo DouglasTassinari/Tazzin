@@ -20,7 +20,7 @@ from datetime import date
 
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import CINZA_CLARO, CINZA_MEDIO, GRAFITE, MARINHO, apply_branding
 from app.database.base import session_scope
@@ -54,11 +54,8 @@ def _cell(texto: str, cor: str | None = None, bold: bool = False) -> str:
     return f'<td style="{estilo}">{texto}</td>'
 
 
-st.title("Operadores")
-st.caption(
-    "Visão por pessoa da usinagem: produção, rendimento, refugo e o índice que define a "
-    "bonificação. Verde atinge a meta, amarelo pede atenção, vermelho está abaixo."
-)
+ui.cabecalho('Industrial', "Operadores", "Visão por pessoa da usinagem: produção, rendimento, refugo e o índice que define a "
+    "bonificação. Verde atinge a meta, amarelo pede atenção, vermelho está abaixo.")
 
 col1, col2 = st.columns(2)
 default_start = date.today().replace(day=1)
@@ -203,9 +200,11 @@ with analises_tab:
             charts.render(charts.donut(labels, values, colors=cores))
         with leg_col:
             st.markdown("**Horas apontadas por categoria**")
-            for lbl, val in zip(labels, values):
-                pct = 100 * val / total
-                st.text(f"{lbl}: {val:,.0f}h ({pct:.0f}%)".replace(",", "."))
+            ui.tabela(
+                [{"Categoria": lbl, "Horas": round(val), "% do total": round(100 * val / total)}
+                 for lbl, val in zip(labels, values)],
+                height=36 * (len(labels) + 1) + 3,
+            )
 
     st.caption(
         "Nota: esta base é sintética e não inclui ponto eletrônico, então o "

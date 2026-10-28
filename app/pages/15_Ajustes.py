@@ -14,7 +14,7 @@ from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 
-from app.core import charts, lancamentos
+from app.core import charts, lancamentos, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.database.base import session_scope
@@ -26,8 +26,7 @@ ensure_demo_data_once()
 TIPOS = ["Melhoria", "Piora"]
 _CHAVE = "ajustes"
 
-st.title("Ajustes / Melhorias")
-st.caption("Melhorias e pioras no tempo padrão de operação — impacto por operador, máquina e tendência.")
+ui.cabecalho('Industrial', "Ajustes / Melhorias", "Melhorias e pioras no tempo padrão de operação — impacto por operador, máquina e tendência.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=90)

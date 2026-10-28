@@ -18,7 +18,7 @@ from datetime import date, timedelta
 
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.core.formatting import format_brl
@@ -28,11 +28,8 @@ from app.services.analytics_service import AnalyticsService
 apply_branding("Painel Estratégico")
 ensure_demo_data_once()
 
-st.title("Painel Estratégico")
-st.caption(
-    "Uma visão que cruza os módulos. Opcional: cada ferramenta funciona sozinha — "
-    "este quadro só mostra o que dá para enxergar quando elas conversam."
-)
+ui.cabecalho('Gestão', "Painel Estratégico", "Uma visão que cruza os módulos. Opcional: cada ferramenta funciona sozinha — "
+    "este quadro só mostra o que dá para enxergar quando elas conversam.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)
@@ -62,35 +59,52 @@ revenue = summary["total_revenue"]
 spend = summary["total_spend"]
 margin = (revenue - spend) / revenue * 100 if revenue else 0.0
 
-row1 = st.columns(4)
-row1[0].metric(
-    "Receita", format_brl(revenue), delta=_delta(revenue, previous["revenue"]),
-    help="Variação sobre o período anterior de mesma duração.",
-)
-row1[1].metric(
-    "Gastos", format_brl(spend), delta=_delta(spend, previous["spend"]),
-    delta_color="inverse", help="Variação sobre o período anterior de mesma duração.",
-)
-row1[2].metric(
-    "Fluxo de caixa líquido", format_brl(summary["net_cashflow"]),
-    delta=_delta(summary["net_cashflow"], previous["cashflow"]),
-    help="Variação sobre o período anterior de mesma duração.",
-)
-row1[3].metric(
-    "Margem operacional", f"{margin:.1f}%",
-    help="(Receita - Gastos) / Receita no período selecionado.",
-)
+def _var(atual: float, anterior: float, bom_se_subir: bool = True) -> tuple[str, str]:
+    """Selo da variação sobre o período anterior: texto e tom (ok/ruim/neutro)."""
+    texto = _delta(atual, anterior)
+    if texto is None:
+        return "", "neutro"
+    subiu = atual >= anterior
+    tom = "ok" if subiu == bom_se_subir else "ruim"
+    return f"{'▲' if subiu else '▼'} {texto} vs. período anterior".replace(".", ","), tom
 
-row2 = st.columns(4)
-row2[0].metric("Projetos ativos", summary["active_projects"])
-row2[1].metric("Rendimento médio de produção", f"{summary['avg_production_yield']:.1f}%")
-row2[2].metric("Taxa média de defeitos", f"{summary['avg_defect_rate']:.1f}%")
-row2[3].metric("Quadro de funcionários ativo", summary["active_headcount"])
 
-row3 = st.columns(3)
-row3[0].metric("Contas a receber pendentes", format_brl(summary["outstanding_receivables"]))
-row3[1].metric("Contas a pagar pendentes", format_brl(summary["outstanding_payables"]))
-row3[2].metric("Solicitações de manutenção abertas", summary["open_maintenance_requests"])
+s_rec, t_rec = _var(revenue, previous["revenue"])
+s_gas, t_gas = _var(spend, previous["spend"], bom_se_subir=False)
+s_cx, t_cx = _var(summary["net_cashflow"], previous["cashflow"])
+
+st.markdown("#### Resultado do período")
+ui.kpis([
+    dict(rotulo="Receita", valor=format_brl(revenue), tom="info",
+         situacao=s_rec, situacao_tom=t_rec),
+    dict(rotulo="Gastos", valor=format_brl(spend), tom="neutro",
+         situacao=s_gas, situacao_tom=t_gas),
+    dict(rotulo="Fluxo de caixa líquido", valor=format_brl(summary["net_cashflow"]),
+         tom="ok" if summary["net_cashflow"] >= 0 else "ruim",
+         situacao=s_cx, situacao_tom=t_cx),
+    dict(rotulo="Margem operacional", valor=f"{margin:.1f}%".replace(".", ","),
+         tom="ok" if margin >= 20 else "atencao", nota="(Receita − Gastos) ÷ Receita"),
+])
+
+st.markdown("#### Operação e pessoas")
+ui.kpis([
+    dict(rotulo="Projetos ativos", valor=str(summary["active_projects"]), tom="info"),
+    dict(rotulo="Rendimento médio de produção",
+         valor=f"{summary['avg_production_yield']:.1f}%".replace(".", ","),
+         tom="ok" if summary["avg_production_yield"] >= 90 else "atencao"),
+    dict(rotulo="Taxa média de defeitos",
+         valor=f"{summary['avg_defect_rate']:.1f}%".replace(".", ","),
+         tom="ok" if summary["avg_defect_rate"] <= 2 else "ruim"),
+    dict(rotulo="Quadro de funcionários ativo", valor=str(summary["active_headcount"]), tom="info"),
+])
+
+st.markdown("#### Pendências")
+ui.kpis([
+    dict(rotulo="Contas a receber pendentes", valor=format_brl(summary["outstanding_receivables"]), tom="info"),
+    dict(rotulo="Contas a pagar pendentes", valor=format_brl(summary["outstanding_payables"]), tom="atencao"),
+    dict(rotulo="Manutenções abertas", valor=str(summary["open_maintenance_requests"]), tom="atencao",
+         nota="Solicitações ainda não concluídas"),
+], por_linha=3)
 
 st.divider()
 

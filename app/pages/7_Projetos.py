@@ -15,7 +15,7 @@ from datetime import date, timedelta
 
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.database.base import session_scope
@@ -33,8 +33,7 @@ STATUS_PROJETO = {
     "cancelled": ("Cancelados", charts.NEGATIVO),
 }
 
-st.title("Projetos")
-st.caption("Status de entrega, conclusão de tarefas e próximos marcos.")
+ui.cabecalho('Gestão', "Projetos", "Status de entrega, conclusão de tarefas e próximos marcos.")
 
 with session_scope() as session:
     service = ProjectsService(session)

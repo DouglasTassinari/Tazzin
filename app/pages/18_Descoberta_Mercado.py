@@ -17,7 +17,7 @@ if _PROJECT_ROOT not in sys.path:
 import pandas as pd
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.core.formatting import format_brl
@@ -30,11 +30,8 @@ ensure_demo_data_once()
 PORTES = {"mei": "MEI", "me": "Microempresa", "epp": "Empresa de pequeno porte", "demais": "Demais"}
 SITUACOES = {"ativa": "Ativa", "baixada": "Baixada", "suspensa": "Suspensa", "inapta": "Inapta"}
 
-st.title("Descoberta de Mercado")
-st.caption(
-    "A base nacional de empresas recortada pelo que interessa à prospecção: "
-    "atividade econômica, praça e porte. O mercado antes da primeira ligação."
-)
+ui.cabecalho('Comercial', "Descoberta de Mercado", "A base nacional de empresas recortada pelo que interessa à prospecção: "
+    "atividade econômica, praça e porte. O mercado antes da primeira ligação.")
 
 with session_scope() as session:
     service = MarketService(session)
@@ -124,7 +121,7 @@ tabela = pd.DataFrame(
         "Capital social": [format_brl(e["capital_social"]) for e in amostra],
     }
 )
-st.dataframe(tabela, hide_index=True)
+ui.tabela(tabela, hide_index=True)
 
 st.caption(
     "Base sintética nesta amostra. Num cliente real este módulo lê a base pública "

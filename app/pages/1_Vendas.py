@@ -16,7 +16,7 @@ from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.core.formatting import format_brl
@@ -29,8 +29,7 @@ ensure_demo_data_once()
 
 SEGMENTOS = {"retail": "Varejo", "wholesale": "Atacado", "enterprise": "Corporativo"}
 
-st.title("Acompanhamento Faturamento")
-st.caption("Receita, pipeline de pedidos e principais clientes.")
+ui.cabecalho('Gestão', "Acompanhamento Faturamento", "Receita, pipeline de pedidos e principais clientes.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)
@@ -116,7 +115,7 @@ with tabela_diaria_tab:
                 "Receita líquida": [format_brl(receita) for _, receita, _ in linhas],
             }
         )
-        st.dataframe(tabela, hide_index=True)
+        ui.tabela(tabela, hide_index=True)
         st.caption(
             "Um dia por linha, do mais recente para o mais antigo. A receita é líquida "
             "(bruto menos o desconto médio dos pedidos do dia)."

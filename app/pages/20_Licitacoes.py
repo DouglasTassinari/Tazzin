@@ -20,7 +20,7 @@ from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 
-from app.core import charts, lancamentos
+from app.core import charts, lancamentos, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.core.formatting import format_brl
@@ -44,11 +44,8 @@ SITUACOES = {
 }
 _CHAVE = "licitacoes"
 
-st.title("Inteligência de Licitações")
-st.caption(
-    "O que o poder público está comprando, cruzado por NCM com o que a empresa "
-    "vende. Fonte pública (PNCP) virando fila de decisão."
-)
+ui.cabecalho('Comercial', "Inteligência de Licitações", "O que o poder público está comprando, cruzado por NCM com o que a empresa "
+    "vende. Fonte pública (PNCP) virando fila de decisão.")
 
 hoje = date.today()
 col1, col2 = st.columns(2)
@@ -142,7 +139,7 @@ with oportunidades_tab:
                 "PNCP": [item["pncp"] for item in oportunidades],
             }
         )
-        st.dataframe(tabela, hide_index=True)
+        ui.tabela(tabela, hide_index=True)
         st.caption(
             "Só entram licitações cujo NCM existe no catálogo — o resto é ruído. "
             "«Itens nossos» é quantos itens daquela licitação a empresa sabe fornecer."
@@ -183,7 +180,7 @@ with atas_tab:
                 "Vence em": [ata["valida_ate"].strftime("%d/%m/%Y") for ata in atas],
             }
         )
-        st.dataframe(tabela, hide_index=True)
+        ui.tabela(tabela, hide_index=True)
         st.caption(
             "Gap positivo = a ata paga mais do que a empresa cobra, ou seja, há margem para "
             "disputar a próxima. Gap negativo = o concorrente entrou abaixo do nosso preço."
@@ -228,7 +225,7 @@ with licitacoes_tab:
                 "PNCP": [item["pncp"] for item in filtradas],
             }
         )
-        st.dataframe(tabela, hide_index=True)
+        ui.tabela(tabela, hide_index=True)
 
 # --------------------------------------------------------------------------- #
 # Catálogo — o que a empresa sabe vender                                       #
@@ -251,7 +248,7 @@ with catalogo_tab:
                 "Nosso preço": [format_brl(item["nosso_preco"]) for item in catalogo],
             }
         )
-        st.dataframe(tabela, hide_index=True)
+        ui.tabela(tabela, hide_index=True)
         st.caption(
             "É este cadastro que decide o que é oportunidade. Incluir um NCM aqui "
             "faz o módulo passar a enxergar todas as licitações daquele item."
@@ -287,8 +284,11 @@ with cobertura_tab:
             if not fora:
                 st.success("O catálogo cobre todos os NCMs licitados no período.")
             else:
-                for item in fora:
-                    st.text(f"{item['ncm']} · {item['descricao'][:38]} — {format_brl(item['valor'])}")
+                ui.tabela(
+                    [{"NCM": i["ncm"], "Produto": i["descricao"][:38], "Valor licitado": format_brl(i["valor"])}
+                     for i in fora],
+                    height=36 * (len(fora) + 1) + 3,
+                )
                 st.caption("Cada linha é receita pública que a empresa hoje não consegue disputar.")
 
         st.subheader("Demanda por NCM")
@@ -302,7 +302,7 @@ with cobertura_tab:
                 "Valor licitado": [format_brl(item["valor"]) for item in demanda],
             }
         )
-        st.dataframe(tabela, hide_index=True)
+        ui.tabela(tabela, hide_index=True)
 
 # --------------------------------------------------------------------------- #
 # Operação — a fila de quem vai disputar                                       #
@@ -347,7 +347,7 @@ with operacao_tab:
         registros = lancamentos.listar(_CHAVE)
         if registros:
             st.markdown("**Decisões desta sessão**")
-            st.dataframe(pd.DataFrame(list(reversed(registros))), hide_index=True)
+            ui.tabela(pd.DataFrame(list(reversed(registros))), hide_index=True)
             lancamentos.botao_limpar(_CHAVE)
         lancamentos.aviso_efemero()
 

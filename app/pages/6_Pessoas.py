@@ -15,7 +15,7 @@ from datetime import date, timedelta
 
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.database.base import session_scope
@@ -25,8 +25,7 @@ apply_branding("Funcionários")
 
 ensure_demo_data_once()
 
-st.title("Funcionários")
-st.caption("Quadro de funcionários e utilização de folgas.")
+ui.cabecalho('Pessoas', "Funcionários", "Quadro de funcionários e utilização de folgas.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)

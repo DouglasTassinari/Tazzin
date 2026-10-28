@@ -15,7 +15,7 @@ from datetime import date, timedelta
 
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.core.formatting import format_brl
@@ -33,8 +33,7 @@ CATEGORIAS = {
     "packaging": "Embalagens",
 }
 
-st.title("Compras")
-st.caption("Gastos, pipeline de pedidos e principais fornecedores.")
+ui.cabecalho('Industrial', "Compras", "Gastos, pipeline de pedidos e principais fornecedores.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)

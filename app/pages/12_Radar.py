@@ -16,7 +16,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.core.formatting import format_brl
@@ -32,11 +32,8 @@ SEGMENTOS = {"retail": "Varejo", "wholesale": "Atacado", "enterprise": "Corporat
 STATUS_PT = {"draft": "Rascunho", "confirmed": "Confirmada"}
 _ORDEM_FAIXA = ["Quente", "Morna", "Fria", "Vencida"]
 
-st.title("Radar de Oportunidades")
-st.caption(
-    "Cada proposta em aberto (pedido ainda não faturado) ganha uma temperatura "
-    "pela idade dela. Serve para nenhuma proposta envelhecer sem follow-up."
-)
+ui.cabecalho('Comercial', "Radar de Oportunidades", "Cada proposta em aberto (pedido ainda não faturado) ganha uma temperatura "
+    "pela idade dela. Serve para nenhuma proposta envelhecer sem follow-up.")
 
 hoje = date.today()
 with session_scope() as session:
@@ -126,7 +123,7 @@ df = pd.DataFrame(
         "Valor": [format_brl(p["valor"]) for p in filtradas],
     }
 )
-st.dataframe(df, width="stretch", hide_index=True)
+ui.tabela(df, width="stretch", hide_index=True)
 st.caption(
     "Ordenada por prioridade: vencidas primeiro, depois a mais antiga, depois a de maior valor. "
     "Quente ≤ 10 dias · Morna ≤ 20 · Fria ≤ 30 · Vencida > 30."

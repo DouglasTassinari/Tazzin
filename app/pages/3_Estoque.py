@@ -13,7 +13,7 @@ if _PROJECT_ROOT not in sys.path:
 
 import streamlit as st
 
-from app.core import charts
+from app.core import charts, ui
 from app.core.bootstrap import ensure_demo_data_once
 from app.core.branding import apply_branding
 from app.database.base import session_scope
@@ -30,8 +30,7 @@ CATEGORIAS = {
     "packaging": "Embalagens",
 }
 
-st.title("Cobertura de Estoque")
-st.caption("Níveis de estoque disponível e alertas de reposição.")
+ui.cabecalho('Industrial', "Cobertura de Estoque", "Níveis de estoque disponível e alertas de reposição.")
 
 with session_scope() as session:
     service = InventoryService(session)
