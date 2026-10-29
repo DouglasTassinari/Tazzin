@@ -39,12 +39,18 @@ def _icone_de_atalho() -> None:
     início" do celular mostrar a logo TAZZIN (o Streamlit só define o favicon)."""
     components.html(
         """<script>
-        const d = window.parent.document;
-        if (!d.querySelector('link[rel="apple-touch-icon"]')) {
-          const l = d.createElement('link');
-          l.rel = 'apple-touch-icon';
-          l.href = '/app/static/apple-touch-icon.png';
-          d.head.appendChild(l);
+        const url = 'https://raw.githubusercontent.com/DouglasTassinari/Tazzin/main/app/static/apple-touch-icon.png';
+        // No Streamlit Cloud o app roda num iframe: o iOS lê o <head> da página
+        // de fora (window.top), então o ícone vai nos dois níveis.
+        for (const w of [window.parent, window.top]) {
+          try {
+            const d = w.document;
+            d.querySelectorAll('link[rel="apple-touch-icon"], link[rel="apple-touch-icon-precomposed"]').forEach(e => e.remove());
+            const l = d.createElement('link');
+            l.rel = 'apple-touch-icon';
+            l.href = url;
+            d.head.appendChild(l);
+          } catch (e) {}
         }
         </script>""",
         height=0,
