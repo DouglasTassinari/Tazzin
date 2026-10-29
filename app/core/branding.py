@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 _ASSETS_DIR = Path(__file__).resolve().parents[1] / "assets"
 
@@ -33,6 +34,23 @@ AZUL = "#4A90D9"
 CHART_COLOR = AZUL
 
 
+def _icone_de_atalho() -> None:
+    """Injeta o apple-touch-icon no <head>, para o atalho "Adicionar à tela de
+    início" do celular mostrar a logo TAZZIN (o Streamlit só define o favicon)."""
+    components.html(
+        """<script>
+        const d = window.parent.document;
+        if (!d.querySelector('link[rel="apple-touch-icon"]')) {
+          const l = d.createElement('link');
+          l.rel = 'apple-touch-icon';
+          l.href = '/app/static/apple-touch-icon.png';
+          d.head.appendChild(l);
+        }
+        </script>""",
+        height=0,
+    )
+
+
 def apply_branding(page_title: str) -> None:
     """Configura título, favicon e logo da página. Deve ser a primeira chamada st.*."""
     st.set_page_config(
@@ -40,6 +58,7 @@ def apply_branding(page_title: str) -> None:
         page_icon=FAVICON,
         layout="wide",
     )
+    _icone_de_atalho()
     st.logo(LOGO_WORDMARK, icon_image=LOGO_ICON, size="large")
     st.sidebar.image(LOGO_FULL, width="stretch")
     # Import tardio: ui.py importa as cores deste módulo.

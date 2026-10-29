@@ -37,3 +37,7 @@ secondaryBackgroundColor = "#1F2937"  # Grafite — cards, sidebar, inputs
 textColor = "#F2F4F7"                 # Cinza claro — texto
 linkColor = "#4CAF50"                 # Verde
 font = "Poppins, sans-serif"
+
+# Serve app/static/ em /app/static/ (ícone de atalho do celular, ver branding.py)
+[server]
+enableStaticServing = true
